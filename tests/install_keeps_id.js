@@ -67,8 +67,8 @@ if (fs.existsSync(other)) {
   const desc = Buffer.from(d3.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString();
   const j = JSON.parse(fs.readFileSync(ids, "utf8")).slots.lab;
   ok3 = first.includes("<k>k2</k><s>Claude Lab</s>") && !/<k>k(1|15|79)<\/k>/.test(first) && (z.match(/<s>Claude Lab<\/s>/g) || []).length === 1
-    && desc.startsWith("testing X -- Made by Claude") && j.holds.level === "GDLM 43 climb" && j.history.length === 2
-    && dflt === "Lab default. -- Made by Claude (and some humans)";
+    && desc.startsWith("testing X -- Made by humans, with Claude") && j.holds.level === "GDLM 43 climb" && j.history.length === 2
+    && dflt === "Lab default. -- Made by humans, with Claude";
   console.log(ok3 ? "ok: --slot lab (no ID yet) installs under its name with the description" : "FAIL: --slot lab\n" + desc + "\n" + first.slice(0, 300));
 }
 // --ids-from: the slot's record was deleted and the level re-added without its ID (2026-11-24 cleanup);

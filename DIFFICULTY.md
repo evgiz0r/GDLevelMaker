@@ -457,8 +457,14 @@ The features a score must see; each line says whether v2 sees it.
   wave spam into tight wave into hard flying, after the flying its somewhat easy in the end". PARTLY SEEN: the wave press
   windows (71-200 ms) now count half. NOT SEEN: **the flight room misses the waves** -- Deadlocked's last waves read 290
   units of slack (open) and its first wave 60-240: `corridor()` measures only the vertical gap in the player's own
-  column, blind to speed (3x leaves a third of the time) and to diagonal corridors and spike walls ahead. Fix next:
-  slack in ms (gap / vertical speed) along the path, measured on the PC (needs the levels).
+  column, blind to speed (3x leaves a third of the time) and to diagonal corridors and spike walls ahead. **Being fixed
+  (2026-11-28):** `flyRoom` now also keeps, per flown second, the speed index `sp` and `clearSlack` (2 x the distance to
+  the nearest hazard in any direction within 150 units, saws by their circle, minus the player's size: what a wave
+  threads between, not only what is above and below it). `flySlack(f, W)` turns them into the score's slack:
+  min(column slack, FLY_CLEAR x clearSlack) x (1x speed / this speed)^FLY_SPEED. Both are 0 (off) in DIFF_V2 until the
+  mains are re-measured on the PC (`node tools/balance.js --write-mains` -> knowledge/balance_mains_v2.json, flyRaw gains
+  [.., sp, clearSlack]) and `tools/difficulty_fit_v2.js` picks them (it prints a CLEAR x SPEED x FLY x wave table once
+  the data has them). Still not seen after that: moving objects (the world's start positions are measured).
 - **Theory of Everything 2**: "somewhat more balanced, nothing being too brutal besides the 80% ship. all sections are
   somewhat decently difficult, the first cube is bit easier, but it has timings and its not that free". A balanced level:
   a peak measure would rank it below the unbalanced Deadlocked, as he does.

@@ -55,7 +55,7 @@ function load() {
       jump.push(a.ms);
     }
     // the dual count splits into plain and asymmetric from the cost at the assumed 0.05 / 0.10
-    const c1 = lg(1 - 0.05), c2 = lg(1 - 0.10), nAsym = Math.max(0, Math.round((m.dual - m.dualPresses * c1) / (c2 - c1)));
+    const c1 = lg(1 - 0.05), c2 = lg(1 - 0.10), nAsym = m.asymPresses != null ? m.asymPresses : Math.max(0, Math.round((m.dual - m.dualPresses * c1) / (c2 - c1)));
     out.push({ n: m.n, name: NAME[m.n], settle, jump, flyMs, seconds: JSON.parse(fs.readFileSync(f, "utf8")).seconds, nPress: acts.length, flyN, grav: m.gravPresses, dual: m.dualPresses - nAsym, asym: nAsym,
       fly: cleanFly(m.flyRaw), flyRaw: m.flyRaw, rank: rank[m.n], stars: STARS[m.n], att: us[m.n] ? us[m.n].attempts : null, v1: m.score, v2: m.v2 });
   }
@@ -71,7 +71,11 @@ function scoreOf(L, w) {
   let s = L.settle + lapse * (L.jump.length + (w.FLYLAPSE === false ? 0 : L.flyN) + (w.FLYSEC || 0) * flySec);
   if (w.timing !== false) for (const ms of L.jump) s += lg(erf(ms / 2 / (w.SIGMA * Math.SQRT2)));
   s += L.grav * lg(1 - w.GRAV) + L.dual * lg(1 - w.DUAL) + L.asym * lg(1 - Math.min(0.9, 2 * w.DUAL));
-  if (w.FLY) s += flyCost(L.fly, w.FLY);
+  // w.CLEAR / w.SPEED: the flight room's all-round hazard view and speed scaling (lib/difficulty.js flySlack)
+  if (w.FLY) { let fly = L.fly;
+    if (w.CLEAR || w.SPEED) { const key = (w.CLEAR || 0) + "/" + (w.SPEED || 0); L.flyBy = L.flyBy || {};
+      fly = L.flyBy[key] || (L.flyBy[key] = cleanFly(L.flyRaw.map(f => [f[0], f[1], DF.flySlack({ slack: f[2], sp: f[4], clearSlack: f[5] }, { FLY_CLEAR: w.CLEAR, FLY_SPEED: w.SPEED }), f[3]]))); }
+    s += flyCost(fly, w.FLY); }
   // w.FLYT = {wave: k, ...}: a share k of the timing cost of that flying mode's press windows
   if (w.FLYT) for (const [mode, k] of Object.entries(w.FLYT)) for (const ms of L.flyMs[mode] || []) s += k * lg(erf(ms / 2 / (w.SIGMA * Math.SQRT2)));
   return s;
@@ -125,6 +129,15 @@ if (require.main === module) {
   console.log(`v2, best fit              ${fmt(best)}   ${JSON.stringify(best.w)}`);
   const lib = fit(Ls, libWeights());
   console.log(`v2, lib/difficulty.js     ${fmt(lib)}   ${JSON.stringify(libWeights())}`);
+  // the flight room's new views (all-round hazard slack, speed), at the lib weights: only with a re-measure that has them
+  if (Ls.some(L => L.flyRaw.some(f => f.length >= 6 && f[5] != null))) {
+    const rows = [];
+    for (const CLEAR of [0, 0.5, 0.75, 1, 1.5]) for (const SPEED of [0, 0.5, 1, 2]) for (const FLY of [8, 12, 16, 24, 32]) for (const wave of [0, 0.5])
+      rows.push({ w: { CLEAR, SPEED, FLY, wave }, ...fit(Ls, { ...libWeights(), CLEAR, SPEED, FLY, FLYT: { wave } }) });
+    rows.sort((a, b) => b.obj - a.obj);
+    console.log(`\nflight room views (lib weights, CLEAR x SPEED x FLY x wave timing), top ${top}:`);
+    for (const r of rows.slice(0, top)) console.log(`  ${JSON.stringify(r.w).padEnd(48)} ${fmt(r)}`);
+  } else console.log("\n(no all-round hazard slack in knowledge/balance_mains_v2.json yet: run tools/balance.js --write-mains on the PC)");
   console.log(`\ntop ${top}:`); for (const r of all.slice(0, top)) console.log(`  ${JSON.stringify(r.w).padEnd(48)} ${fmt(r)}`);
   const plateau = all.filter(r => r.obj >= best.obj - 0.01);
   const span = k => { const v = plateau.map(r => r.w[k]); return `${Math.min(...v)}-${Math.max(...v)}`; };
@@ -146,7 +159,7 @@ if (require.main === module) {
       fly: +flyCost(L.fly, best.w.FLY).toFixed(3) })) }, null, 1));
 }
 // the weights lib/difficulty.js scores with (DIFF_V2), in this file's terms
-function libWeights() { const V = DF.DIFF_V2; return { SIGMA: V.SIGMA, FLY: V.FLY_SPREAD, GRAV: V.GRAV_PEN, DUAL: V.DUAL_PEN, LAPSE: V.LAPSE, FLYLAPSE: false, FLYSEC: V.FLY_SLIPS, FLYT: { wave: V.WAVE_TIMING } }; }
+function libWeights() { const V = DF.DIFF_V2; return { SIGMA: V.SIGMA, FLY: V.FLY_SPREAD, GRAV: V.GRAV_PEN, DUAL: V.DUAL_PEN, LAPSE: V.LAPSE, FLYLAPSE: false, FLYSEC: V.FLY_SLIPS, FLYT: { wave: V.WAVE_TIMING }, CLEAR: V.FLY_CLEAR, SPEED: V.FLY_SPEED }; }
 // one main level's v2 score at the library's weights, from the cached presses + the PC's flight room (board, quality, ...):
 // {score, stars, label, parts: {presses, flight}} or null when not measured
 let LOADED = null;

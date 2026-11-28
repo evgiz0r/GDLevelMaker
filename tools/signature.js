@@ -1,3 +1,6 @@
+// 2026-11-28: the default is overlay() below -- a human holding a wand tipped with the Claude spark, "MADE BY HUMANS" /
+// "with Claude", quiet over the last 5 s (Evgeni: "tune down the joke ... its like its empowering the human, not replacing").
+// signature() is the older stage sign (opt-in; robot + human):
 // The signature at the end of every GDLM level: a little robot and a little human high-fiving on a small
 // lit stage under a spotlight, a spark where their hands meet, and two lines of text above them:
 // "MADE BY CLAUDE" / "(and some humans)". On the beat (when the song's beats are given) both bob, the
@@ -33,7 +36,8 @@
 // Checked in our GD-art render (tools/shoot.js); GD's font is approximated there. In the game the text is
 // GD's own font (as the user's screenshot shows).
 "use strict";
-const SIGN = "Made by Claude (and some humans)";
+const SIGN = "Made by humans, with Claude";
+const OLD_SIGNS = ["Made by Claude (and some humans)"];   // replaced in a description by describe()
 const PX = 6, BLOCK = 211;
 // the pair, top row first, 19 pixels wide. Robot (left): d antenna, e eyes and c chest lights (glow),
 // h head / b body / a arms (metal), k mouth (dark), l legs and feet (dark metal). Human (right): r hair,
@@ -125,8 +129,8 @@ function signature(opts = {}) {
   const ty = top + 2.8 * 30 + 26;
   const txt = (s, y, scale, ch) => o(914, cx, y, Object.assign(both(ch), { 24: "5", 25: "8", 32: r3(scale),
     31: Buffer.from(s).toString("base64").replace(/\+/g, "-").replace(/\//g, "_") }));
-  txt(opts.text || "MADE BY CLAUDE", ty + 20, 0.62, CH.text);
-  txt(opts.text2 || "(and some humans)", ty, 0.4, 1011);
+  txt(opts.text || "MADE BY HUMANS", ty + 20, 0.62, CH.text);
+  txt(opts.text2 || "with Claude", ty, 0.4, 1011);
   // the Claude spark crowning the sign (the user, 2026-11-24: "add such icon also in the sign in the end of the level"):
   // a round terracotta badge with 12 cream rays, 2 blocks, above the gold title; it hops with the spark group on the beat.
   // Private levels only for now: the spark evokes Anthropic's Claude mark (ART.md "Claude icons").
@@ -170,27 +174,41 @@ function signature(opts = {}) {
 // opts.dx     units right of the player where the sign's centre sits when it appears (default 250; the player is 36% across
 //             a 569-unit view, so the right edge is ~364 ahead)
 function overlay(opts = {}) {
-  const { CH, RGB } = channelsOf(opts), sc = opts.scale || 0.55, secs = opts.secs == null ? 5 : opts.secs;
+  // v2 (Evgeni, 2026-11-28: "tune down the joke ... made by humans, but with claude, and somehow a wand a human holds";
+  // "its like its empowering the human, not replacing"): ONE figure, the human, holding up a wand whose tip is the Claude
+  // spark; "MADE BY HUMANS" over "with Claude". No robot: Claude is the tool in the human's hand.
+  const { CH, RGB } = channelsOf(opts), sc = opts.scale || 0.7, secs = opts.secs == null ? 5 : opts.secs;
   const tEnd = opts.tOfX(opts.endX), t0 = Math.max(0.5, tEnd - secs), x0 = opts.xOfT(t0);
-  const cx = x0 + (opts.dx == null ? 250 : opts.dx), base = (opts.cam || 0) + 227 - 12 - 208 * sc;   // 208: the badge's top over the feet
+  const H = 152;   // the title's top over the feet, at scale 1
+  const cx = x0 + (opts.dx == null ? 250 : opts.dx), base = (opts.cam || 0) + 227 - 12 - H * sc;
   const G = (opts.group0 || 960) + 5, out = [], r3 = v => String(+(+v).toFixed(3));
   const o = (id, x, y, p) => out.push({ id, x: +x.toFixed(2), y: +y.toFixed(2), rot: 0, flipX: false, flipY: false, props: Object.assign({ 155: "1" }, p) });
   const both = ch => ({ 21: String(ch), 22: String(ch) });
   const alloc = P.allocator(CH.text, Object.assign({}, CH));
-  const robot = P.put("robot", cx - 27 * sc, base, { alloc, colours: RGB, groups: [G], zo: 4, layer: "B1", scale: sc });
-  const human = P.put("human", cx + 27 * sc, base, { alloc, colours: RGB, groups: [G], zo: 4, layer: "B1", flipX: true, scale: sc });
-  out.push(...robot.objects, ...human.objects);
-  const ty = base + (2.8 * 30 + 26) * sc;
-  const txt = (s, y, scale, ch) => o(914, cx, y, Object.assign(both(ch), { 24: "3", 25: "8", 32: r3(scale * sc), 57: String(G),
-    31: Buffer.from(s).toString("base64").replace(/\+/g, "-").replace(/\//g, "_") }));
-  txt(opts.text || "MADE BY CLAUDE", ty + 20 * sc, 0.62, CH.text);
-  txt(opts.text2 || "(and some humans)", ty, 0.4, 1011);
+  // the human (prop "human": 14 x 26 pixels of 3 units, feet at y); its right hand is pixel column 12-13, row 17-18 from the top
+  const hx = cx - 12 * sc;
+  const human = P.put("human", hx, base, { alloc, colours: RGB, groups: [G], zo: 4, layer: "B1", scale: sc });
+  out.push(...human.objects);
+  // the wand: a thin rod from the hand up and out, the Claude spark at its tip, a few still sparkles round it (no effects)
+  const hand = [hx + 19.5 * sc, base + 25 * sc], tip = [hx + 42 * sc, base + 82 * sc];
+  const len = Math.hypot(tip[0] - hand[0], tip[1] - hand[1]), ang = Math.atan2(tip[0] - hand[0], tip[1] - hand[1]) * 180 / Math.PI;
+  o(211, (hand[0] + tip[0]) / 2, (hand[1] + tip[1]) / 2, Object.assign(both(CH.outline), { 24: "3", 25: "5", 128: r3(4.5 * sc / 30), 129: r3(len / 30), 57: String(G) }));
+  Object.assign(out[out.length - 1], { rot: +ang.toFixed(2) });
+  o(211, (hand[0] + tip[0]) / 2, (hand[1] + tip[1]) / 2, Object.assign(both(CH.light), { 24: "3", 25: "6", 128: r3(2 * sc / 30), 129: r3((len - 3) / 30), 57: String(G) }));
+  Object.assign(out[out.length - 1], { rot: +ang.toFixed(2) });
   if (opts.badge !== false) {
     const CI = require("../lib/claude_icons.js"), PA = require("../lib/pixelart.js");
-    const b = PA.toObjects(CI.badge(24), { x: cx, y: ty + (20 + 48) * sc, px: 2.5 * sc, anchor: "center", z: "B1", zo: 10, groups: [G],
+    const b = PA.toObjects(CI.badge(24), { x: tip[0], y: tip[1], px: 1.1 * sc, anchor: "center", z: "B1", zo: 10, groups: [G],
       ch: { outline: CH.outline, body: CH.claude, shade: CH.claude2, mark: CH.claudeRay } });
     out.push(...b.objects);
   }
+  for (const [dx, dy, s] of [[-18, 4, 3], [17, 10, 2.5], [-6, 20, 2], [19, -9, 2], [-15, -12, 2.5]])
+    o(211, tip[0] + dx * sc, tip[1] + dy * sc, Object.assign(both(CH.spark), { 24: "3", 25: "9", 32: r3(s * sc / 30), 6: "45", 57: String(G) }));
+  // the words: what it is (made by humans) big, how (with Claude) small, over the figure
+  const txt = (str, y, scale, ch) => o(914, cx, y, Object.assign(both(ch), { 24: "3", 25: "8", 32: r3(scale * sc), 57: String(G),
+    31: Buffer.from(str).toString("base64").replace(/\+/g, "-").replace(/\//g, "_") }));
+  txt(opts.text || "MADE BY HUMANS", base + 140 * sc, 0.62, CH.text);
+  txt(opts.text2 || "with Claude", base + 118 * sc, 0.45, 1011);
   // hidden until T - secs (the alpha well before it comes into view), then one calm fade in, locked to the camera to the end
   const ty2 = base + 300;
   o(1007, Math.max(15, x0 - 700), ty2, { 36: "1", 51: String(G), 35: "0", 10: "0" });
@@ -212,9 +230,10 @@ function clipEnd(objects, col) { const x1 = extent(col).x1; return objects.filte
 // the record's description (k3) gets the line once
 function describe(desc) {
   desc = String(desc || "").trim();
+  for (const old of OLD_SIGNS) desc = desc.split(old).join(SIGN);
   return desc.includes(SIGN) ? desc : (desc ? desc + " -- " : "") + SIGN;
 }
-module.exports = { signature, overlay, header, describe, extent, clipEnd, TEXT_HALF, channelsOf, colours, SIGN, PAIR };
+module.exports = { signature, overlay, header, describe, extent, clipEnd, TEXT_HALF, channelsOf, colours, SIGN, OLD_SIGNS, PAIR };
 
 // node tools/signature.js <level.gdlvl> [--out file]  -- add the signature to a copy of a level (end of
 // the level, on the ground, beats from local/beats when the song has them) -> local/tmp/<name>_sig.gdlvl,
