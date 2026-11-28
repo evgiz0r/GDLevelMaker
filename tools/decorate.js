@@ -164,6 +164,9 @@ function jumpIndicators(w, r, id, GD, opts = {}) {
     if (cue !== Infinity) { const hz0 = a.x + 15 + cue; if (x > hz0 - INDICATOR.clear) x = Math.floor((hz0 - INDICATOR.clear) / 15) * 15; }
     const hazNear = xx => boxes.find(b => b.kind === "hazard" && b.x0 - INDICATOR.clear < xx && b.x1 + INDICATOR.clear > xx && (up ? b.y0 <= surface + 60 && b.y1 >= surface - 5 : b.y1 >= surface - 60 && b.y0 <= surface + 5));
     for (let k = 0, h; k < 6 && (h = hazNear(x)); k++) x = Math.floor((h.x0 - INDICATOR.clear) / 15) * 15;
+    // ... and on the platform it is for (Evgeni, GDLM 78: "they point to weird places"): a press at a ledge put the
+    // mark half a block past the edge, over the pit; slide it back until there is ground under it
+    if (solidAt(a.x, under)) for (let k = 0; k < 8 && !solidAt(x, under); k++) x -= 15;
     out.push({ id, x, y: up ? surface + INDICATOR.lift : surface - INDICATOR.lift,
       rot: ((opts.rot ?? INDICATOR.rot) + (up ? 0 : 180)) % 360, flipX: false, flipY: false, props: markProps(id, opts), why: why.join(",") });
   }

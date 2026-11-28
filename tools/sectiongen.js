@@ -1023,27 +1023,18 @@ GEN["my-mwz1890c"] = o => { const { R, imix, room, len, W, H: HH, G } = ctx(Obje
 // 3 rows from the band's middle. In the sim (lib/physics.js) a climb over 20 rows through three pairs solves; in the game
 // UNCHECKED (the ship tick between the two portals, and that the pair re-bands like a mode change).
 function swingTall(o, { R, imix, room, len, W, H, G }) {
-  // the swell and the waves together stay under ~0.7 rows a column (steeper than that a swing can't follow)
-  // the corridor at least 5 rows: 4 (hard) could not be flown at all, at 1x or 2x, once it was closed above and below
-  const gap = Math.max(5, R.int(room(5, 4), room(6, 5))), A = o.amp ?? 1.5, P = len(room(26, 20), room(34, 26)),
-    Pd = W >= 120 ? Math.round(W / 2) : W,   // whole swells: it leaves at the height it came in (GDLM 78's first swing left near the top, so the next one was flown over)
-     top = H - 2 - Math.ceil(gap / 2 + A);   // the upper saw chain stays inside the map (H - 4 cut it off at the swell's top: GDLM 78's swing flew over the open top)
-  // the swell from row 5 to the map's top less 4 (wider than this failed at 60 cols: too steep with the waves; open:
-  // the whole height needs a longer swell, Evgeni "100% spread or close in all generations")
-  const low = Math.ceil(gap / 2), b0 = o.entry != null ? Math.max(low, Math.min(top, Math.round(o.entry))) : Math.min(5, low),
-    // o.entry (typebuild: where the swing before this one left the player): the swell starts there and swings to the far side
-    far = b0 > (low + top) / 2 ? low : top,
-    D = x => b0 + (far - b0) * Math.min(1, Pd / 60) * (1 - Math.cos(2 * Math.PI * x / Pd)) / 2,   // a short swell lower: under 60 columns the full height is too steep to follow   // b0: the corridor starts on the ground, where the player comes in (row 5 left a hard corridor's lower chain over the entry)
-    Y = x => D(x) + A * Math.sin(2 * Math.PI * x / P);
-  let bc = 5;
+  // INSIDE THE BAND, NO BAND MOVERS (Evgeni on GDLM 78, 2026-11-28: the R pairs show in GD as a pink + yellow portal pair --
+  // "many wierd dual portals, that dont do much besides confusing and making the game too hard", "many portals where we dont
+  // really need to change the view"; and "the swing is way too hard, too tight, way much higher cps needed"): the corridor
+  // stays in the 10-row band the swing portal sets (rows 0-9), 6-7 rows wide, on long gentle waves; both saw chains inside
+  // the band, saw curtains every 8 columns from the 16th so it can't be flown under or over (GDLM 78's swing rode the
+  // ground under its lower chain); it starts and ends low (whole waves), where the player comes in.
+  const BAND = 10, gap = R.int(6, 7), P = len(room(40, 34), room(52, 42)), mid = BAND / 2,
+    A = Math.max(0.8, (BAND - gap - 1) / 2), n = Math.max(1, Math.round(W / P)), Pw = W / n,
+    Y = x => mid - A * Math.cos(2 * Math.PI * x / Pw);   // starts at its lowest, ends there too
   for (let x = 0; x < W; x++) { const y = Y(x), lo = Math.round(y - gap / 2) - 1, hi = Math.round(y + gap / 2), ch = x % 2 ? "q" : "o";
-    if (lo >= 0) G.put(x, lo, ch); if (hi < H) G.put(x, hi, ch);
-    // curtains: every 8 columns from the 16th (room to swing up into the corridor first), saws from the lower chain down to the ground and from the upper one up to the
-    // map's top, so the corridor can't be flown under or over (GDLM 78: the swing rode the ground under the lower chain and
-    // the band's top over the upper one, a secret way in the level and in its own check)
-    if (x >= 16 && x < W - 2 && x % 8 === 0) { for (let r = lo - 1; r >= 0; r--) G.put(x, r, "q"); for (let r = hi + 1; r < H; r++) G.put(x, r, "q"); }
-    if (x > 2 && x < W - 2 && Math.abs(D(x) - bc) >= 3) { const r = Math.round(y); G.put(x, r, "R");
-      bc = Math.max(0, Math.floor((r * 30 + 15 - 150) / 30)) + 5; } }
+    if (lo >= 0) G.put(x, lo, ch); if (hi < BAND) G.put(x, hi, ch);
+    if (x >= 16 && x < W - 2 && x % 8 === 0) { for (let r = lo - 1; r >= 0; r--) G.put(x, r, "q"); for (let r = hi + 1; r < BAND; r++) G.put(x, r, "q"); } }
   return { map: G.rows(), mode: "swing" }; }
 
 // FLYING ON THE GROUNDS (ship, his my-mwz1s7po). Idea: a narrow corridor between two thin bars: "you need to either fully

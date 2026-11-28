@@ -14,7 +14,7 @@
 //   (Evgeni: "indicators can also have color ingame, probably something different from the hazard spike design of that
 //   level"); [r, g, b] = that colour. Without it: white (1011).
 //   colourFor(objects, header) -> {rgb, hazardHue, why}; applyColour(objects, header, opts) -> header with channel 970.
-// Pieces point DOWN at the surface for a normal jump; upside down the whole piece set turns over.
+// Pieces point DOWN at the surface for a normal jump; upside down the whole piece set is MIRRORED (y and rot negated).
 "use strict";
 const K = require("./scenekit.js");
 
@@ -57,7 +57,8 @@ function expand(marks, opts = {}) {
     st.draw((id, dx, dy, o = {}) => {
       const p = K.obj(id, m.x + dx * k, m.y + (down ? dy : -dy) * k, { ch, z: "T2", zo: 20, groups: [g],
         s: o.s != null ? o.s * k : undefined, sx: o.sx != null ? o.sx * k : undefined, sy: o.sy != null ? o.sy * k : undefined,
-        rot: down ? (o.rot || 0) : (o.rot || 0) + 180, hsv: o.dim ? `0a1a${o.dim}a0a0` : null });
+        // upside down: mirrored, not turned (a two-stroke 'v' turned 180 is still a 'v'; Evgeni, GDLM 78: roof marks must point up)
+        rot: down ? (o.rot || 0) : (360 - (o.rot || 0)) % 360, hsv: o.dim ? `0a1a${o.dim}a0a0` : null });
       if (m.why) p.why = m.why;
       out.push(p);
     });

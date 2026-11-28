@@ -24,3 +24,9 @@ const LF = GD.parseLevel("kA2,0;" + fl.map(o => `1,${o.id},2,${o.x},3,${o.y}`).j
 const under = outside(LF.objects, LF.header, [], { path: Array.from({ length: 900 }, (_, i) => ({ x: 240 + i * 1.3, y: 75, mode: "ufo" })) });
 assert.strictEqual(under.stretches.length, 0, "under a hanging pipe over the ground: no stretch");
 console.log("ok flappy: under a hanging pipe is the way, not a skip");
+// a ship riding the ground under a corridor whose floor floats at rows 2-3 (GDLM 78 at 6.5 s) is found
+const fc = []; for (let c = 10; c < 40; c++) { for (const r of [2, 3, 8]) fc.push({ id: 1, x: c * 30 + 15, y: r * 30 + 15 }); }
+const LC2 = GD.parseLevel("kA2,0;" + fc.map(o => `1,${o.id},2,${o.x},3,${o.y}`).join(";") + ";");
+const ground = outside(LC2.objects, LC2.header, [], { path: Array.from({ length: 900 }, (_, i) => ({ x: 300 + i * 1.3, y: 15, mode: "ship" })) });
+assert.ok(ground.stretches.length >= 1 && ground.stretches[0].side === "below", "under a floating corridor floor: found");
+console.log("ok ground: riding under a floating corridor is found");

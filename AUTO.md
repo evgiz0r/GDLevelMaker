@@ -396,6 +396,8 @@ The leaks that remain are old: presses in the last half second under the sign ("
 mid-level spots the builder accepted (its "leaks per pass" line). ~1 s per level.
 
 ### Sections by character (tools/sections.js, 2026-11-26)
+Cuts (2026-11-28): strongest first, drops (a loudness jump, `drops()`) before entries and changes, 6 s apart (5 s around a
+drop); before, the first entry that came took the slot and Hellgate's drop fell mid-section. `node tests/sections_drops.js`.
 Evgeni: "sections have to be cut by the transitions of the level". The batches were already cut at the song's transitions,
 but each batch's kinds and icons were a dice roll. Now each batch is typed from the measured song (heaviness, loudness, which
 band leads, the transition at its start; `node tools/sections.js <song>` prints them) and gets content by type:
