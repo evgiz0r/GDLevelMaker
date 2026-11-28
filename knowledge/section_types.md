@@ -135,6 +135,22 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   page's physics (blocks, G / N, orbs Y / B / E, GD's jump snap, a rising cube landing on a top corner within 10 units),
   [column, bottom row] every 8 ticks. tests/sectiongen.js "path": it reaches the end and is within 0.25 rows of the real
   sim at most (60 columns, 13 and 20 rows).
+- **A random entry height** (Evgeni 2026-11-28: "lets make the initial spot in the generation random, so that the
+  entrance is not always at the same place. could be at any height (for the non starting cube)"): ctx's `entry(lo, hi)`
+  draws the row a section comes in at from its own seeded stream (`o.entry` sets it), and every presses-first type starts
+  there with its floor run up from the ground at column 0, so the join before it ramps to it: open / closer cube,
+  staircase and stair path (below the first turn, so a climb still comes first), orbs (the start platform), ball, ball
+  portals, spider (taller maps any height, in the band the join's portal sets: 3 rows under the entry; short maps 2-3),
+  fly and wave (the corridor's floor at column 0, flat for its first column; the planner holds the ship on it, then lets
+  it down at the corridor's slope; short maps up to row 4 so the band stays at the ground), flappy (a pillar over the
+  first 3 columns, up to row 4). Over 12 seeds a 20-row map comes in at 5-10 heights (tests/sectiongen.js "entry"); every
+  plan still clears (30-200 cols). Not moved: the entrance (it starts the level), swing (the board thread's), the
+  shape-first fallbacks and flying on the grounds.
+  Two joins changed with it: lib/scenejoin.js ends a climb 4 columns before a mode portal (a cube leaving a 45-degree
+  slope is launched up for ~3 columns and met the portal still rising: a ship planned from rest flew 1-3 rows off its
+  plan), and tools/layoutcheck.js's planCheck now builds the join in front as a level does, the mode portal in its gated
+  last column (it stood before the join, so a ball rode a tall ramp and died there). tracePath knows the ball's and the
+  spider's band edges (within 0.1 rows of the sim).
 - **Open idea: mixing variants inside one type** (Evgeni 2026-11-27, for later: "eventually we might want to make the
   sections of the same kind mixed (for example ball layouts could be mixed in a way). either by generator from the go or
   by some cutting. currently the sections have defined gameplay, which is also nice. if you overmix gameplay, sometimes it

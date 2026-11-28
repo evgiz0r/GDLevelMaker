@@ -19,14 +19,16 @@ const RUN = 8;   // run-up columns before the section's join
 // one section -> a spec: run-up, portal, entry join, the section, exit join, a flat end
 function specOf(z) {
   const T = LS.tiles(z), w = z.map[0].length, h = z.map.length, flat = { T: [], w: 1, h };
-  const a = SJ.join(flat, { T, w, h }), b = SJ.join({ T, w, h }, flat), x0 = RUN + a.n;
+  // the join in front as a level's join is (lib/scenejoin.js): the cube rides its ramp and meets the section's mode portal
+  // in the join's gated last column (was: the portal before the join, so a ball rode a tall entry's ramp and died there)
+  const a = SJ.join(Object.assign({ mode: "cube" }, flat), { T, w, h, mode: z.mode }), b = SJ.join({ T, w, h }, flat), x0 = RUN + a.n;
   const objects = [];
   const put = (map, dc) => { for (const [kind, c, r, ex] of sampleOf(map)) objects.push(ex ? [kind, c + dc, r, ex] : [kind, c + dc, r]); };
   // the joins as text maps too, so sampleOf turns their tiles into the same objects
   const mapOf = (tiles, n) => { const g = Array.from({ length: h }, () => Array(n).fill(".")); for (const q of tiles) if (q.r < h) g[h - 1 - q.r][q.c] = q.t; return g.map(l => l.join("")); };
   put(mapOf(a.tiles, a.n), RUN); put(z.map, x0); put(mapOf(b.tiles, b.n), x0 + w);
   const end = x0 + w + b.n;
-  if (z.mode !== "cube") objects.unshift([PORTAL[z.mode], RUN - 3, 1]);
+  if (z.mode !== "cube") objects.unshift(a.portal ? [PORTAL[z.mode], RUN + a.portal.c, a.portal.r] : [PORTAL[z.mode], RUN - 3, 1]);
   return { spec: { name: "GDLM layout check " + z.key, desc: "Layout check", objects, endCol: end + 12, structures: false, outro: false },
     x0, x1: x0 + w, end };
 }

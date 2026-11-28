@@ -49,4 +49,11 @@ if (!process.argv.includes("--quick")) { const LC = require("../tools/layoutchec
       const b = near.reduce((a, q) => Math.abs(q[0] - c) < Math.abs(a[0] - c) ? q : a); mx = Math.max(mx, Math.abs(b[1] - y)); }
     const end = z.path[z.path.length - 1][0];
     ok(end >= 59 && mx < 0.35, `path ${key} 60x${rows || "-"}: traced to column ${end.toFixed(1)}, ${mx.toFixed(2)} rows from the sim at most`); } }
+// ENTRY (Evgeni 2026-11-28: "lets make the initial spot in the generation random ... could be at any height (for the non
+// starting cube)"): over 12 seeds, the floor at column 0 (the height the player comes in at) takes at least 4 heights in
+// a 20-row map for every presses-first type (o.entry sets it)
+for (const key of SG.KEYS) { const hs = new Set(); let pr = false;
+  for (let seed = 1; seed <= 12; seed++) { const z = SG.make(key, { cols: 60, rows: 20, seed, tier: "normal" }), H = z.map.length; if (z.presses) pr = true;
+    let f = 0; while (f < H && "#/\\".includes(z.map[H - 1 - f][0])) f++; hs.add(f); }
+  if (pr && key !== "flappy") ok(hs.size >= 4, `entry ${key}: ${hs.size} heights over 12 seeds (${[...hs].sort((a, b) => a - b).join(" ")})`); }
 process.exit(bad ? 1 : 0);
