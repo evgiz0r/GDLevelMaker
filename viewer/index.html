@@ -3146,7 +3146,8 @@ document.getElementById("linkBtn").onclick = async () => {
 };
 setInterval(() => { if (L && !playing) writeHash(); }, 1000);
 (async () => {
-  if (SHOOT) return shootRun();
+  // a page error ends the job at once with its reason (tools/video.js prints it) instead of a silent 3-min stall
+  if (SHOOT) return shootRun().catch(e => { try { (window.SHOOT_POST || ((n, b) => fetch("/shoot/" + SHOOT + "/" + n, { method: "POST", body: b })))("done", JSON.stringify({ error: String(e && e.stack || e).slice(0, 600) })); } catch (x) {} });
   if (hashParams().get("embed")) return; // the parent page loads the level (viewer/polish.html)
   await loadWip(false); meLoad();
   if (labHash()) labOpen(labHash());
@@ -3254,7 +3255,17 @@ async function shootRun() {
   }
   // spots as % of the level (tools/compare_frames.js): the moment the run passes that share of the level's length
   if (job.pcts) job.times = job.pcts.map(pc => { const x = L.world.endX * pc / 100; let k = L.path.findIndex(q => q.x >= x); if (k < 0) k = L.path.length - 1; return k / P.TPS; });
-  const post = (name, url) => fetch("/shoot/" + SHOOT + "/" + name, { method: "POST", body: url });
+  // each POST with a 20 s timeout and 4 tries: one fetch that never answered hung a whole video render on the PC
+  // (Hellgate ending v2, 2026-11-28: stalled at frame ~365 twice, the same page under a debugger finished)
+  const post = async (name, url) => {
+    for (let k = 0; ; k++) {
+      const ac = new AbortController(), to = setTimeout(() => ac.abort(), 20000);
+      try { const r = await fetch("/shoot/" + SHOOT + "/" + name, { method: "POST", body: url, signal: ac.signal }); clearTimeout(to); if (r.ok || k >= 3) return r; }
+      catch (e) { clearTimeout(to); if (k >= 3) throw e; }
+      await new Promise(r => setTimeout(r, 500 * (k + 1)));
+    }
+  };
+  window.SHOOT_POST = post;
   if (job.map) { await post("000.png", await mapRender(job)); if (window.MAPGEO) await post("geo.json", JSON.stringify(window.MAPGEO)); return post("done", "1"); }
   if (job.video) return shootVideo(job, post);
   for (let i = 0; i < job.times.length; i++) {

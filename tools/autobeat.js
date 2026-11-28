@@ -1,4 +1,5 @@
 // node tools/autobeat.js [--song Electrodynamix] [--seed 1] [--beats N] [--from-beat B] [--out levels/lab/auto_beat.gdlvl]
+//                        [--offset <song s>: the level starts that far into its song, kA13; --from-beat stays a song beat]
 //                        [--name "GDLM auto beat"] [--rate R] [--ending quiet|beat|outro|none] [--end-look floating|ground|plain] [--end-dress floating|ice|ground] [--quiet]
 //   -> an AUTO level (no click at all) built BEAT-FIRST on an official song: every change of movement fires on a beat.
 //      Prints each trigger (beat, kind, how far off the beat it fired) and the measures; writes the .gdlvl with the song set.
@@ -97,6 +98,12 @@ function musicOf(song) {
     impacts: (j.impacts || []).map(([t, beat, strength, kind]) => ({ t, beat, strength, kind })),
   };
 }
+// the song's notes, bars, impacts and speed plan moved to level time for a level that starts `off` seconds into its song
+function shiftMusic(m, off) {
+  const sh = a => (a || []).map(x => Object.assign({}, x, { t: x.t - off }));
+  return Object.assign({}, m, { offset: off, notes: sh(m.notes), intensity: sh(m.intensity), bars: sh(m.bars), impacts: sh(m.impacts),
+    speedPlan: (m.speedPlan || []).map(sp => [sp[0] - off, ...sp.slice(1)]) });
+}
 function notePlan(g, music, fromBeat, uptoBeat, o = {}) {
   const minGap = o.minGap || 0.17, t0 = g.t0 + fromBeat * g.period, t1 = g.t0 + uptoBeat * g.period;
   const inten = t => { const a = music.intensity; if (!a || !a.length) return 0.5; let best = a[0]; for (const x of a) if (x.t <= t) best = x; else break; return best.value; };
@@ -154,7 +161,13 @@ function notePlan(g, music, fromBeat, uptoBeat, o = {}) {
   // the music's own speed plan (tools/impacts.js speedPlan) when it has one
   if (music.speedPlan && music.speedPlan.length) {
     let cur = "1x";
+    // a level that starts inside its song (opts.offset, or a late --from-beat): the plan's changes before the first note only
+    // set the speed it starts at -- one portal on the first note, not one on each of the first notes
+    const first = out.length ? out[0].t : 0;
+    let pre = "1x"; for (const [t, , sp] of music.speedPlan) if (t < first - 0.01) pre = sp;
+    if (pre !== "1x" && out.length) { out[0].speedTo = pre; out[0].newBlock = true; cur = pre; }
     for (const [t, , sp] of music.speedPlan) {
+      if (t < first - 0.01) continue;
       if (sp === cur) continue;
       const at = out.find(p => p.t >= t - 0.01 && !p.speedTo);
       if (at) { at.speedTo = sp; at.newBlock = true; cur = sp; }
@@ -539,10 +552,14 @@ function sectionBatch(c, prev, r, t) {
 function build(opts = {}) {
   REJ.band = REJ.spider = REJ.clip = 0;
   const song = opts.song || "Electrodynamix", seed = opts.seed || 1, r = rng(seed);
-  const g = loadGrid(song);
+  // opts.offset: the song second the level starts at (GD's kA13), so a piece can sit anywhere in a song (HELLGATE.md: the auto
+  // part from 180.7 s). Level time = song time - offset; the grid and the notes are shifted, beat numbers stay the song's.
+  const off = +opts.offset || 0, g = off ? Object.assign({}, loadGrid(song), { offset: off }) : loadGrid(song);
+  if (off) g.t0 -= off;
   const tickOf = b => Math.round((g.t0 + b * g.period) * TPS);
   const lastBeat = Math.min(g.beats - 6, opts.beats != null ? (opts.from || 4) + opts.beats : g.beats - 6);
   if (opts.music === undefined) opts.music = musicOf(song);   // the song's notes when they are measured, else the beat grid
+  if (off && opts.music && !opts.music.offset) opts.music = shiftMusic(opts.music, off);
   const plan = opts.music ? notePlan(g, opts.music, opts.from || 4, lastBeat, opts) : triggerBeats(g, opts.from || 4, lastBeat);
   const st = { objs: [], segs: [], r, lastMode: null, airSlopes: !!opts.airSlopes };
   const farX = () => 20000 + (plan.length ? 0 : 0);   // far enough for any song at 3x: replaced by the real end at the end
@@ -937,6 +954,7 @@ function measures(fin, placed, g) {
 }
 
 function write(out, b, name) {
+  const setOff = h => b.g.offset ? h.replace(/(^|,)kA13,[-0-9.]+/, "$1kA13," + (+b.g.offset.toFixed(3))) : h;
   let desc = `auto, beat-first: every trigger on a note of ${b.song} (tools/autobeat.js, AUTO.md)`;
   let str = b.lv.str;
   if (b.lv.sig) {   // the signature: its colours in the header, its objects after the outro, the level clipped 5 blocks after it
@@ -946,7 +964,7 @@ function write(out, b, name) {
     for (let k = Math.ceil((lastT - 6 - b.g.t0) / b.g.period); b.g.t0 + k * b.g.period < lastT + 4; k++) beats.push(b.g.t0 + k * b.g.period);
     // the sign's beat triggers sit at the x the player reaches on each beat (from the run, not a 1x guess)
     const p = b.fin.p, xAt = t => { const i = Math.max(0, Math.round(t * TPS)); return i < p.length ? p[i].x : p[p.length - 1].x + (i - p.length + 1) * 311.58 / TPS; };
-    let header = sg.header(lvl.header, { col: b.lv.sig.col, floorY: fy });
+    let header = setOff(sg.header(lvl.header, { col: b.lv.sig.col, floorY: fy }));
     if (b.lv.sig.quiet) {   // the quiet sign over the last 5 s of the run, nothing after the level's end
       const endX = Math.max(...lvl.objects.filter(o => !["trigger"].includes(GD.objInfo(o.id).kind)).map(o => o.x));
       const tOfX = x => { let i = p.findIndex(s => s.x >= x); if (i < 0) i = p.length - 1; return i / TPS; };
@@ -979,7 +997,8 @@ function write(out, b, name) {
   const rec = GD.newRecord(name, desc);
   if (b.g.k45) GD.setField(rec, "k45", "i", b.g.k45); else GD.setField(rec, "k8", "i", String(b.g.k8));
   fs.mkdirSync(path.dirname(out), { recursive: true });
-  writeGdlvl(out, rec, GD.parseLevel(str));
+  const L0 = GD.parseLevel(str); L0.header = setOff(L0.header);
+  writeGdlvl(out, rec, L0);
   if (b.measures && b.measures.clears) require("./planned.js").writeAuto(out, "tools/autobeat.js: clears with no press");   // wip put replays it at once
 }
 
@@ -987,11 +1006,11 @@ if (require.main === module) {
   const a = process.argv.slice(2), opt = k => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : null; };
   const t0 = Date.now();
   const notes = opt("--notes") ? JSON.parse(fs.readFileSync(opt("--notes"), "utf8")) : a.includes("--beats-only") ? null : undefined;
-  const b = buildInSong({ ending: opt("--ending") === "none" ? false : opt("--ending") || undefined, endLook: opt("--end-look") || undefined, endDress: opt("--end-dress") || undefined, music: notes, minGap: opt("--min-gap") ? +opt("--min-gap") : undefined, rate: opt("--rate") ? +opt("--rate") : undefined, song: opt("--song") || "Electrodynamix", seed: +(opt("--seed") || 1), beats: opt("--beats") != null ? +opt("--beats") : null, from: opt("--from-beat") != null ? +opt("--from-beat") : 2, quiet: a.includes("--quiet") });
+  const b = buildInSong({ ending: opt("--ending") === "none" ? false : opt("--ending") || undefined, endLook: opt("--end-look") || undefined, endDress: opt("--end-dress") || undefined, music: notes, minGap: opt("--min-gap") ? +opt("--min-gap") : undefined, rate: opt("--rate") ? +opt("--rate") : undefined, song: opt("--song") || "Electrodynamix", seed: +(opt("--seed") || 1), beats: opt("--beats") != null ? +opt("--beats") : null, from: opt("--from-beat") != null ? +opt("--from-beat") : 2, offset: opt("--offset") ? +opt("--offset") : undefined, quiet: a.includes("--quiet") });
   const out = path.resolve(opt("--out") || path.join(ROOT, "levels", "lab", "auto_beat.gdlvl"));
   write(out, b, opt("--name") || "GDLM auto beat");
   console.log("motifs (blocks of AAAA, BBBB, a mix):\n  " + b.motifs.join("\n  "));
   console.log(JSON.stringify(b.measures));
   console.log(`${b.measures.clears ? "CLEARS with no press" : "DIES: " + b.fin.why} -> ${path.relative(ROOT, out)} (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
 }
-module.exports = { build, buildInSong, write, triggerBeats, notePlan, musicOf, loadGrid, strays, run, clips };
+module.exports = { shiftMusic, build, buildInSong, write, triggerBeats, notePlan, musicOf, loadGrid, strays, run, clips };
