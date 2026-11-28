@@ -108,14 +108,29 @@ button:active:not(:disabled),.btn:active,[role=button]:active{transform:translat
 @media(max-width:760px){.tool{grid-template-columns:1fr}.tool:nth-child(even) .shot{order:0}}
 .demo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:center}
 @media(max-width:760px){.demo{grid-template-columns:1fr}}
+.start{background:var(--bg2);border-top:1px solid var(--line)}
+.start h2{font-size:clamp(28px,3.4vw,40px);margin-bottom:8px;color:var(--lime)}
+.go{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media(max-width:760px){.go{grid-template-columns:1fr}}
+.go div{display:flex;gap:12px;align-items:flex-start;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px}
+.go b{font-family:"Lilita One";font-weight:400;font-size:28px;line-height:1;color:var(--ember)}
+.go code{font:13px ui-monospace,Menlo,monospace;color:var(--lime);overflow-wrap:anywhere}
+.ucs{display:grid;gap:4px}
+.uc{display:grid;grid-template-columns:5.6em minmax(0,13em) minmax(0,1fr);gap:12px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line)}
+.uc b{font-weight:600}.uc span{color:var(--mute);font-size:14px}
+@media(max-width:640px){.uc{grid-template-columns:5.6em minmax(0,1fr)}.uc span{grid-column:2}}
+.dots{letter-spacing:2px;color:var(--ember);font-size:15px;white-space:nowrap}
+.dots i{font-style:normal;color:var(--line)}
+.legend{color:var(--mute);font-size:14px;margin:0 0 12px}
 </style>
 <header class="hero2 band">
  <div class="wrap">
   <div>
    <h1>A workbench for Geometry Dash, outside the editor</h1>
-   <p>You bring the idea, the song and the taste. Claude builds the layout, proves it can be beaten, explains what's hard and dresses it in a theme. You play it, mark what's off, and it gets better.</p>
+   <p>You bring the idea, the song and the taste. Your AI builds the layout, proves it can be beaten, explains what's hard and dresses it in a theme. You play it, mark what's off, and it gets better.</p>
    <div class="ctas">
-    <a class="btn main" href="#tools">See the tools</a>
+    <a class="btn main" href="#start">How to use it</a>
+    <a class="btn" href="#tools">See the tools</a>
     <a class="btn" href="https://evgiz0r.github.io/GDWorkbench/">Open the viewer</a>
     <a class="btn" href="https://github.com/evgiz0r/GDWorkbench">Source on GitHub</a>
    </div>
@@ -123,6 +138,17 @@ button:active:not(:disabled),.btn:active,[role=button]:active{transform:translat
   <img class="sign" src="img/sign_crop.jpg" alt="A person holding a wand tipped with the Claude spark, under the words made by humans, with Claude">
  </div>
 </header>
+
+<section class="band start" id="start"><div class="wrap">
+  <h2>Not an app. Point your AI at it.</h2>
+  <p class="lead">There is nothing for you to download, install or sign up for. GDWorkbench is a repo of tools, knowledge and ideas written for an AI to read and run. Your AI does the work; you steer.</p>
+  <div class="go">
+    <div><b>1</b><span>Open an AI that can work with code, like Claude Code.</span></div>
+    <div><b>2</b><span>Tell it: <code>use github.com/evgiz0r/GDWorkbench, read SETUP.md</code></span></div>
+    <div><b>3</b><span>Ask in plain words: "a calm level on my song, Normal, mostly ship".</span></div>
+  </div>
+  <p class="lead" style="margin-top:14px">It finds your game, learns from the docs what we learned, and hands back a level you import into GD.</p>
+</div></section>
 
 <details class="sec" open data-fold="how"><summary><h2>From an idea to the game</h2><span class="k">every step is a tool you can steer</span></summary>
 <div class="band"><div class="wrap">
@@ -152,6 +178,8 @@ button:active:not(:disabled),.btn:active,[role=button]:active{transform:translat
   <div><h3>Section generators</h3><p id="gconcept"></p><p>Each type is a concept in code, not a copied layout: any length, any difficulty, on the song's beat. Lime marks are the planned presses.</p></div></div>
  <div class="tool"><div class="shot"><img src="img/anim_auto.webp" alt="An auto level replaying, with numbered beat lines sliding past"></div>
   <div><h3>Auto levels on the beat</h3><p>No clicks at all: pads, orbs and portals carry the player through the structures, timed to the song. The beat lines show the rhythm as it plays.</p></div></div>
+ <div class="tool"><div class="shot"><img src="img/anim_gate.webp" alt="An ending animation: an arch builds over the player, the sky glows, and a gate closes"></div>
+  <div><h3>Animations, in the level</h3><p>Move, rotate, colour and fade triggers placed on the beat: an arch that builds itself, a sky that burns, a gate that closes at the end. They run in the game, around the gameplay or as the ending.</p></div></div>
  <div class="tool"><div class="shot"><img src="img/tool_map.jpg" alt="Level map with the solver's route drawn by game mode"></div>
   <div><h3>The solver's route</h3><p>A physics sim of GD 2.2 plays every level, frame by frame, and draws the route by mode. It flags skips, secret ways around structures and lazy holds.</p><p>Checked against real runs in the game through a small mod.</p></div></div>
  <div class="tool"><div class="shot"><img src="img/tool_balance.jpg" alt="Difficulty breakdown page: score, attempts, and cost of every press"></div>
@@ -184,8 +212,10 @@ button:active:not(:disabled),.btn:active,[role=button]:active{transform:translat
  <div class="use"><span class="tag t-n">weak</span><b>The UI</b><span>it works, but it's a workshop, not a polished app</span></div>
 </div></div></details>
 
-<details class="sec" open data-fold="uses"><summary><h2>What you can ask it</h2><span class="k">in plain words</span></summary>
-<div class="band"><div class="wrap uses" id="uses"></div></div></details>
+<details class="sec" open data-fold="uses"><summary><h2>What you can ask it, scored by us</h2><span class="k">our own honest grade</span></summary>
+<div class="band"><div class="wrap">
+ <p class="legend">●●●●● used all the time and checked in the real game · ●●●● works, used often · ●●● works, first version · ●● built, barely tried · ● started · none yet: an idea</p>
+ <div class="ucs" id="uses"></div></div></div></details>
 
 <details class="sec" open data-fold="demo"><summary><h2>Try one in your game</h2><span class="k">a demo level</span></summary>
 <div class="band"><div class="wrap demo">
@@ -248,9 +278,8 @@ M.sort((a,b)=>(a[2]??9)-(b[2]??9));
 document.querySelector("#mains tbody").innerHTML=M.map(([n,st,s,ok])=>`<tr><td>${esc(n)}</td><td class="n">${st}</td><td class="n">${s==null?"–":s.toFixed(2)}</td><td>${s==null?"":`<span class="lad" style="width:${(Math.log10(s/0.15)/mx*100).toFixed(1)}%"></span>`}</td><td>${tier(s)}</td><td class="${ok?"ok":"no"}">${ok?"yes":"not yet"}</td></tr>`).join("");
 
 // use cases
-const U=[["w","A level from a prompt","\"A happy level, 1:40, Normal\" → built, solved, judged"],["w","Show it","replayed in the browser with every click and its timing window"],["w","Difficulty from timing","a score per press, per section, per level"],["w","Issue report","every problem ranked by effect and effort to fix"],["w","Fix or edit by words","\"an orb here\", \"make this a wave\", checked after each edit"],["w","Easier or harder","retarget a level to a tier, hardest spots first"],["w","Compare levels","side by side: modes, difficulty, taste, structure"],["w","Played in the real game","a mod presses the route in GD and reports clear or death"],["p","Draw a level","sketch freehand, get a layout that plays your marks"],["p","Auto levels and effects","no-click parts and visuals on the beat"],["p","Decorate my level","keep your gameplay, add a theme"],["n","Song and level from one prompt","original music, then the level on it"]];
-const T={w:["t-w","works"],p:["t-p","in parts"],n:["t-n","not yet"]};
-document.getElementById("uses").innerHTML=U.map(([t,b,s])=>`<div class="use"><span class="tag ${T[t][0]}">${T[t][1]}</span><b>${esc(b)}</b><span>${esc(s)}</span></div>`).join("");
+const U=[[4,"Show it","replayed in the browser, every click with its timing window"],[4,"Human-like solving","routes a person would play: one tap per jump, timings you can hit"],[4,"Difficulty","a score per press, per section, per level, fitted on the main levels"],[4,"Put it on your phone","one unlisted slot, updated from the PC"],[3,"A level from a prompt","\"a happy level, 1:40, Normal\": built, solved, judged"],[3,"Fix or edit by words","\"an orb here\", \"make this a wave\", checked after each edit"],[3,"Fix by a mark","point at a spot in the viewer, the fix is swept over the whole level"],[3,"Issue report","every problem ranked by effect and effort"],[3,"Easier or harder","retarget to a tier, hardest spots first"],[3,"Section generators","15 section types at any length and tier"],[3,"Auto parts","no-click stretches on the beat"],[3,"Compare levels","side by side: modes, difficulty, taste"],[3,"Played in the real game","a mod presses the route in GD and reports clear or death"],[3,"Learn from your runs","your deaths and recordings turn into physics fixes"],[3,"Preview video and thumbnail","the best-looking moment, or the whole run"],[2,"Draw a level","sketch freehand, get a layout that plays your marks"],[2,"Theme and decorate","keep the gameplay, add a look"],[2,"Animations and story","set pieces and endings from triggers"],[2,"Visual effects","synced effects, most unchecked in the game"],[2,"Music control","start points, song switches and fades mid-level"],[2,"A level from a picture","a drawing or image read into a layout"],[2,"Explain a level","why it's hard, where and for whom"],[2,"Improve over rounds","notes become rules for every later level"],[1,"Cut and join levels","parts of levels into one"],[0,"Song and level from one prompt","original music, then the level on it"],[0,"Move a level to another song","re-timed to new beats"],[0,"Finish my half-built level","continue in your style"],[0,"Practice helpers","start positions and drills for your weak spots"],[0,"Platformer levels","not started"]];
+document.getElementById("uses").innerHTML=U.map(([n,b,t])=>`<div class="uc"><span class="dots" aria-label="${n} of 5">${"●".repeat(n)}<i>${"●".repeat(5-n)}</i></span><b>${esc(b)}</b><span>${esc(t)}</span></div>`).join("");
 
 // folds remembered per viewer
 document.querySelectorAll("details[data-fold]").forEach(d=>{const k="sc-fold-"+d.dataset.fold;
