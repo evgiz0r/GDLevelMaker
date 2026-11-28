@@ -7,6 +7,32 @@ writes the tables to `local/quality/table.md`). Owner: the difficulty session. W
 top of `tools/quality.js`. Official numbers are measured on the solver's route (cached official report), ours
 on the route a person plays (lib/natural.js); flow and soft rules are style's tools/flow.js and tools/rules.js.
 
+## Re-run 2026-11-28 (the levels in levels/ now: 44 Hellgate, 73 sunny streets, 75 held together, 77 lab)
+
+`node tools/quality.js --md`; official = 1-10 as below. GDLM 76 night shift had no row (not picked up: open). 77 is a
+physics lab and 75 an auto level, so the verdict rests on 44 and 73.
+
+| metric | official | 44 Hellgate | 73 sunny streets | verdict |
+|---|---|---|---|---|
+| length | 78-95 s | 62 s | 77 s | nearly there (was 16-44 s) |
+| mode changes / min | 1.3-5.2 | 9.7 | 10.9 | **still outside**: about twice the officials |
+| clicks / s | 1.3-1.7 | 1.2 | 1.2 | just under |
+| median window | 238-350 ms | 338 | 296 | inside (was 280-380, looser) |
+| floor changes / 10 s | 11.8-21.3 | 8.1 | 4.8 | **still outside**: 73 at a third of the officials |
+| height range | 3-8 blocks | 6 | 2 | 44 inside, 73 low |
+| 10 s with no floor change | 0% | 0% | 15% | 44 fixed; 73 not |
+| time on the bare floor | 18-51% | 10% | 26% | **fixed** (was 77-89%) |
+| objects / block | 2-6 | 19 | 19 | far above: 2.2-style deco (the officials are 1.x) |
+| gameplay share of objects | 59-93% | 20% | 20% | below for the same reason |
+| triggers / min | 10-142 | 450 | 1837 | far above (73: deco triggers) |
+
+**What changed since 2026-11-23:** length and bare floor are fixed, timing is in range. **Still the biggest gaps:**
+1. **Too many mode changes**: ~10 a minute against 1.3-5.2 -- sections are still short mode snippets.
+2. **Too few height changes**: 4.8-8.1 floor changes per 10 s against 12-21 (73 is flat: 2 blocks of range).
+3. The deco counts are 3-10x the officials', which is expected for a 2.2 look (levels/modern_look.md is that reference),
+   but 73's 1837 triggers a minute is worth a look.
+Soft rules broken on 73: deco coverage, symmetry, clusters; on 44: deco coverage, clusters.
+
 ## Verdict per metric (2026-11-23)
 
 Ours = GDLM 41-60, without 46 arrow catalogue (a test strip). Official = Stereo Madness to xStep (1-10 stars).
