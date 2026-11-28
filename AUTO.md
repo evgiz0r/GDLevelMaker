@@ -450,6 +450,22 @@ pink + pink in the air, 2 gravity portals, no backtracking, 3 s. Hellgate (82 s,
 48 s, stuck at 47.2 s where a cube jump over a spike right after a ledge needs the exact jump: every pad kind, spot and second pad dies there.
 Not checked in the game: whether a hidden pad or portal still shows its flash or particles.
 
+**Auto lab levels (2026-11-28, Evgeni: "can we make lab levels where the level presses for me").** `node tools/autoclose.js
+<level> --viewer` writes `levels/gdlm_auto_<base>.gdlvl` with its zero-press run as its solution (the viewer replays it at
+once); `--route <file.json>` clones from a route file (GDLM 77's probe route). New: a press that was an ORB press in any mode
+(the original jumps with gravity kept) gets hidden pink / yellow / red pads under the player; a blue-orb press a portal or blue
+pad; a ball press on a surface also a hidden blue pad; a ship press also pads that kick it up. Results, all with no press:
+| level | presses -> objects | clone time |
+|---|---|---|
+| clickfirst ball | 28 -> 28 portals | 4 s |
+| clickfirst corridor (ball, orbs) | 39 -> 30 portals, 8 pads, 1 blue pad | 7 s |
+| brickgen2 ball | 56 -> 45 portals, 10 pads, 1 blue pad | 14 s |
+| room mover | 21 -> 20 portals, 1 pad | 2 s |
+| zoom out | 28 -> 28 pads | 12 s |
+| Hellgate theme | 36 -> 35 pads, 2 portals | 18 s |
+Open: full levels with ship stretches -- GDLM 76 stops at 19.1 s (ship), GDLM 78 at 13.7 s (ship -> wave portal entered on a
+release); a ship flipped by a portal rises 0.25 a tick, held 0.39, and pads overshoot. Test: `node tests/autoclose.js`.
+
 ## GDLM 75 held together: a short auto with deco and connected structures (tools/autodeco.js, 2026-11-27)
 
 A ~30 s auto "with some deco and connected structures" (structures held up or joined, not floating loose). One command:

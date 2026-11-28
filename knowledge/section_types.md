@@ -270,6 +270,12 @@ can change (table above) -- and the generator builds a new layout from that conc
 structures" thread) take `{cols, rows, seed}` today; for this they also need the beats (press times in the section) and a
 difficulty target (tier: cps and tightest window), and are checked by tools/layoutcheck.js (solves, windows, tier).
 
+**Which type a build picks is weighted by Evgeni's rating** (2026-11-28: "ill put a scale of how good i think it is. if
+something is very low it should be used very rarely"): a 0-10 slider per generator under the catalogue's 🎲 panel (db
+`genrating`), copied to knowledge/gen_ratings.json by `tools/genrating.js set`; tools/typebuild.js picks a section's type among
+those its mode and song kind allow by (score/10)^2 (unrated = 5; a 10 is 4x an unrated one, a 1 is 1/25), a type not used yet in
+the level first. Soft: a low type is rare, never banned. The level's opening cube section stays the entrance unless he rates it 0.
+
 ## Open
 
 - **Generators: tools/sectiongen.js** (2026-11-27). One per type, built from the concept, not from the drawing:

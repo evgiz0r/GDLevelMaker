@@ -27,7 +27,7 @@
 "use strict";
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, "..");
-const OU = require("./outside.js"), SG = require("./sectiongen.js"), LS = require("./layoutsections.js"), SJ = require("../lib/scenejoin.js");
+const GR = require("./genrating.js"), OU = require("./outside.js"), SG = require("./sectiongen.js"), LS = require("./layoutsections.js"), SJ = require("../lib/scenejoin.js");
 const APRON = 5, HAZ = new Set(["^", "v", "o", "q", "s"]);   // hazard letters of the section maps (tools/layoutsections.js)
 const BPS = { "0.5x": 8.372, "1x": 10.386, "2x": 12.914, "3x": 15.6, "4x": 19.2 };   // blocks a second (planbuild.js)
 const PORTAL = { cube: "cube portal", ship: "ship portal", wave: "wave portal", ufo: "ufo portal", ball: "ball portal", swing: "swing portal", robot: "robot portal", spider: "spider portal" };
@@ -93,8 +93,10 @@ function plan(brief, o = {}) {
   let last = null; const usedT = new Set();
   for (const s of secs) {
     if (!s.type) { const T = TYPES[s.mode] || TYPES.cube, list = (T[s.kind] || T.any || Object.values(T)[0]).slice();
-      if (s.i === 0 && s.mode === "cube") list.unshift("entrance");
-      s.type = list.find(k => !usedT.has(k)) || list.find(k => k !== last) || list[0]; }
+      // the level's opening cube section stays the entrance (the start up on blocks)
+      if (s.i === 0 && s.mode === "cube" && GR.scoreOf("entrance") > 0) { s.type = "entrance"; last = s.type; usedT.add(s.type); continue; }
+      // weighted by Evgeni's rating of each generator (tools/genrating.js: a low one is picked rarely), a fresh type first
+      s.type = GR.pick(list, SG.rng((brief.seed || 7) * 131 + s.i), { avoid: usedT, last }); }
     last = s.type; usedT.add(s.type);
   }
   // a section over SPLIT_S seconds is two ideas, not one corridor (the judge on GDLM 76 v1: "long corridor: 6.3 s of one
@@ -106,7 +108,7 @@ function plan(brief, o = {}) {
     if (s.secs <= (brief.split ?? SPLIT_S) || s.noSplit) { out.push(s); continue; }
     const mid = s.b0 + Math.max(4, Math.round((s.b1 - s.b0) / 2 / 4) * 4), T = TYPES[s.mode] || TYPES.cube;
     const alts = [...new Set([...(T[s.kind] || []), ...(T.any || []), ...Object.values(T).flat()])].filter(k => k !== s.type && k !== "entrance" && !(SG.PRIORITY[k] < 1));
-    const b = Object.assign({}, s, { b0: mid, secs: (s.b1 - mid) * P, sub: 1, seed: s.seedB, type: (brief.sections || [])[s.i]?.typeB || alts.find(k => !usedB.has(k)) || alts[0] || s.type });
+    const b = Object.assign({}, s, { b0: mid, secs: (s.b1 - mid) * P, sub: 1, seed: s.seedB, type: (brief.sections || [])[s.i]?.typeB || (alts.length ? GR.pick(alts, SG.rng((brief.seed || 7) * 977 + s.i), { avoid: usedB }) : s.type) });
     usedB.add(b.type);
     if (b.type === s.type) b.tier = STEP[s.tier] || s.tier;
     out.push(Object.assign({}, s, { b1: mid, secs: (mid - s.b0) * P, sub: 0 }), b);
