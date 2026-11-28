@@ -56,5 +56,18 @@ for (const [song, seed, music] of [["Electrodynamix", 8, null], ["Jumper", 2, nu
   const play = lv.objects.filter(o => !["decoration", "trigger"].includes(GD.objInfo(o.id).kind));
   ok(Math.max(...lv.objects.filter(inG).map(o => o.x)) < Math.max(...play.map(o => o.x)), "the sign lies inside the level, before its end");
 }
+// a piece that starts inside its song (opts.offset = kA13; HELLGATE.md's auto part from 180.7 s): triggers in level time, one
+// speed portal for the speed the song already has there, the offset in the header
+{
+  const b = ab.build({ song: "343707", seed: 1, offset: 178.47, from: 436, beats: 84, rate: 3, ending: false, quiet: true });
+  const m = b.measures, trig = b.placed.filter(t => t.kind !== "none");
+  ok(m.clears, "offset build clears");
+  ok(trig[0].tick / 240 > 1.5 && trig[0].tick / 240 < 5, `first trigger soon after the 2 s lead-in: ${(trig[0].tick / 240).toFixed(2)} s`);
+  ok(m.speedChanges <= 8, `speed portals follow the song, not one per note: ${m.speedChanges}`);
+  const fs = require("fs"), path = require("path"), { readGdlvl } = require("../tools/io.js");
+  const out = path.join(__dirname, "..", "local", "tmp", "test_offset.gdlvl");
+  ab.write(out, b, "GDLM test offset");
+  ok(/(^|,)kA13,178\.47(,|$)/.test(readGdlvl(out).level.header), "kA13 = the offset");
+}
 console.log(bad ? bad + " failed" : "all ok");
 process.exit(bad ? 1 : 0);

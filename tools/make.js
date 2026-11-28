@@ -299,7 +299,7 @@ const INTERNAL = /\b\d{5,}\b|\bdB\b|\bBPM\b|\bb\d+\b|\bv\d+\b|\(the user\)|\bbea
 function checkDesc(desc, name) {
   if (desc.length > DESC_MAX) throw new Error(`description of "${name}" is ${desc.length} characters (GD's limit is about ${DESC_MAX}): write one or two short sentences for players in "desc", move notes to "notes"`);
   if (desc.length > DESC_TARGET) console.log(`   WARN description is ${desc.length} characters; aim for ${DESC_TARGET} or less (STYLE.md "Name and description")`);
-  const m = INTERNAL.exec(desc.replace(/Made by Claude \(and some humans\)/, ""));
+  const m = INTERNAL.exec([require("./signature.js").SIGN, ...require("./signature.js").OLD_SIGNS].reduce((d, t) => d.split(t).join(""), desc));
   if (m) console.log(`   WARN description reads like an internal note ("${m[0]}"): it is shown to players; notes go in "notes"`);
 }
 
@@ -427,7 +427,7 @@ function build(spec, specFile = "spec", opts = {}) {   // opts.placementsOnly: s
     for (const e of o.entries(col)) objects.push(toObj(e, specFile));
     console.log(`   outro ${seed}: ${o.width} columns (${o.secs} s, no click) from column ${col}`);
   }
-  // The signature (tools/signature.js): robot + human, "Made by Claude (and some humans)", after the end.
+  // The signature (tools/signature.js): quiet over the last 5 s, a human with a Claude wand, "Made by humans, with Claude".
   // On by default for every "GDLM ..." level (the user approved it for all, 2026-11-23); a spec opts out
   // with "signature": false. Its column: spec.signature.col, a scene's, else 3 blocks after the last gameplay object.
   let signCol = null, signEndX = null;

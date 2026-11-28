@@ -490,9 +490,9 @@ window.initDesigns = async function (root) {
   const GROUTE = {}, gid = gk => gk.replace(/[^A-Za-z0-9_\-.~:@+]/g, "_");
   async function askRoute(g, ping) { if (!DB || !g || !g.map) return; const gk = genKey(g), id = gid(gk);
     if (!GROUTE[id]) { GROUTE[id] = { state: "asked" };
-      try { await DB.collection("genroute").doc(id).set({ gen: gk, key: g.key, seed: g.seed, cols: g.cols, tier: g.tier, map: g.map, mode: g.mode || "", presses: g.presses || null, state: "asked", at: new Date().toISOString() }); } catch (e) { GROUTE[id] = null; } }
+      try { await DB.collection("genroute").doc(id).set({ gen: gk, key: g.key, seed: g.seed, cols: g.cols, tier: g.tier, map: g.map, mode: g.mode || "", presses: g.presses || null, ...(g.extras && Object.keys(g.extras).length ? { extras: g.extras, rows: g.map.length, bpm: g.bpm || 0, beats: g.beats || null } : {}), state: "asked", at: new Date().toISOString() }); } catch (e) { GROUTE[id] = null; } }
     if (ping && CM && CM.sendToClaude) { const el = root.querySelector(".gpath"); try { await CM.sendToClaude({ anchor: await CM.anchorFor(el || root), text: "〰 solve the path of " + gk + " (collection genroute)" }); GROUTE[id].pinged = true; } catch (e) { GROUTE[id].pinged = false; } render(); } }
-  const genKey = g => "gen:" + g.key + ":" + g.seed + ":" + g.cols + ":" + g.tier + (g.hf && g.hf !== 1 ? ":h" + g.hf : "") + (g.bpm ? ":b" + g.bpm : "") + (g.song ? ":s" + g.song + "@" + g.from : "");
+  const genKey = g => "gen:" + g.key + ":" + g.seed + ":" + g.cols + ":" + g.tier + (g.hf && g.hf !== 1 ? ":h" + g.hf : "") + (g.bpm ? ":b" + g.bpm : "") + (g.song ? ":s" + g.song + "@" + g.from : "") + (g.extras && Object.keys(g.extras).length ? ":x" + Object.keys(g.extras).sort().map(k => k[0] + g.extras[k]).join("") : "");
   function generate(f) { const SG = window.SectionGen; if (!SG) return;
     const key = f.querySelector(".gk").value, cols = Math.max(12, Math.min(200, +f.querySelector(".gc").value || 40)), tier = f.querySelector(".gt").value, seed = 1 + Math.floor(Math.random() * 99999);
     // TALLER (Evgeni 2026-11-27: "can we increase the heights of the generations? by like 1.5 for now?"): the type's own
@@ -507,8 +507,12 @@ window.initDesigns = async function (root) {
     if (bv.startsWith("song:")) { song = (SONGS || []).find(q => q.key === bv.slice(5)); if (song) { const secs = cols * 30 / 311.58 + 1;
       bo = { beats: song.n.filter(x => x[0] >= from && x[0] <= from + secs).map(x => ({ t: x[0] - from, s: x[1] })) }; if (!bo.beats.length) bo = {}; } }
     else { bpm = +bv; if (bpm) bo = { bpm }; }
+    // EXTRAS (Evgeni 2026-11-28: "with pads, with orbs, with portals, with dashes, and maybe we can control how much"): 0..1 each,
+    // passed to sectiongen.make as {extras}; a type that does not take one yet ignores it
+    const extras = {}; for (const k of ["pads", "orbs", "portals", "dashes"]) { const v = +((f.querySelector(".gx-" + k) || {}).value || 0); if (v) extras[k] = v; }
+    if (Object.keys(extras).length) bo.extras = extras;
     try { let z = SG.make(key, { cols, seed, tier, ...bo }); if (hf !== 1) z = SG.make(key, { cols, seed, tier, ...bo, rows: Math.round(z.map.length * hf) });
-      GENS = { key, cols, tier, seed, hf, bpm, song: song ? song.key : "", from: song ? from : 0, map: z.map, mode: z.mode, concept: z.concept || "", path: z.path || null, presses: z.presses || null }; askRoute(GENS, false); }
+      GENS = { key, cols, tier, seed, hf, bpm, extras, beats: bo.beats || null, song: song ? song.key : "", from: song ? from : 0, map: z.map, mode: z.mode, concept: z.concept || "", path: z.path || null, presses: z.presses || null }; askRoute(GENS, false); }
     catch (x) { GENS = { key, cols, tier, seed, err: String(x && x.message || x) }; }
     try { localStorage.setItem("designs-gen", JSON.stringify(GENS)); } catch (e) {} render(); }
   // THE PLANNED PATH, NO SOLVE (Evgeni 2026-11-27: "can we draw the path? now we dont need to solve it right?"): a
@@ -557,11 +561,18 @@ window.initDesigns = async function (root) {
       + `<select class="gb" title="beat: the presses land on this bpm's half beats, or go around a song's real hits">${[0, 100, 120, 130, 140, 150, 160, 175].map(v => `<option value="${v}"${!g.song && v === (g.bpm || 0) ? " selected" : ""}>${v ? v + " bpm" : "no beat"}</option>`).join("")}`
       + `${(SONGS || []).length ? `<optgroup label="a song's hits">${SONGS.map(q => `<option value="song:${esc(q.key)}"${g.song === q.key ? " selected" : ""}>♪ ${esc(q.name)} (${q.bpm} bpm)</option>`).join("")}</optgroup>` : ""}</select>`
       + `<label title="where in the song the section starts">from <input class="gfrom" type="number" min="0" step="0.5" value="${g.from || 0}" style="width:56px">s</label>`
-      + `<button class="ggo">🎲 generate</button></span></div>` + ratePanel(SG, nm);
+      + `<button class="ggo">🎲 generate</button></span></div>`
+      // the four extras behind one fold (the rule: more than ~4 controls in a row fold)
+      + `<details class="gxf" data-fold="genextras"><summary>▸ extras: pads, orbs, portals, dashes</summary><div class="lyh"><span class="pens">${["pads", "orbs", "portals", "dashes"].map(k => `<label title="how many ${k}: 0 none, 1 as many as the type can take">${k} <select class="gx-${k}">${[0, 0.25, 0.5, 0.75, 1].map(v => `<option value="${v}"${v === +((g.extras || {})[k] || 0) ? " selected" : ""}>${v ? Math.round(v * 100) + "%" : "none"}</option>`).join("")}</select></label>`).join("")}</span></div></details>`
+      + ratePanel(SG, nm);
     if (GENS && GENS.err) out += `<div class="lpn" style="color:#ff8a8a">${esc(GENS.err)}</div>`;
-    else if (GENS && GENS.map) { const H = GENS.map.length, W = GENS.map[0].length, cs = Math.round(26 * (open["zoom:layout"] || 1)), T = [];
-      GENS.map.forEach((l, i) => [...l].forEach((ch, c) => { if (ch !== ".") T.push({ t: ch, c, r: H - 1 - i }); }));
-      const gk = genKey(GENS), GR = GROUTE[gid(gk)];
+    else if (GENS && GENS.map) {
+      // EXTRAS need the sim (sectiongen replays each pad): the page can't, so the piece goes to genroute with its extras, the
+      // PC / cloud session makes it again in node (tools/genroute.js) and the page draws that map once it is back
+      const gk = genKey(GENS), GR = GROUTE[gid(gk)], XM = GR && Array.isArray(GR.xmap) && GR.xmap.length ? GR.xmap : null, MAP = XM || GENS.map;
+      const H = MAP.length, W = MAP[0].length, cs = Math.round(26 * (open["zoom:layout"] || 1)), T = [];
+      MAP.forEach((l, i) => [...l].forEach((ch, c) => { if (ch !== ".") T.push({ t: ch, c, r: H - 1 - i }); }));
+      if (GENS.extras && Object.keys(GENS.extras).length) out += `<div class="lpn">${XM ? "extras made in the sim: " + esc(Object.entries(GR.xcount || {}).map(([k, v]) => v + " " + k).join(", ") || "none fitted") : "extras: waiting for Claude to make it in the sim (〰 asks); the map below is without them"}</div>`;
       out += `<div class="lpn"><b>${esc(nm(GENS.key))}</b> · ${esc(GENS.mode || "")} · ${W} x ${H} · ${esc(GENS.tier)} · seed ${GENS.seed}${GENS.concept ? " · " + esc(GENS.concept) : ""}</div>`
         + `<div class="wide"><svg class="gtiles" viewBox="0 0 ${W} ${H + 0.25}" style="width:${W * cs}px;height:${(H + 0.25) * cs}px;background:#1a1636;display:block;max-width:none">`
         + `<g class="grid">${Array.from({ length: W + 1 }, (_, c) => `<line x1="${c}" y1="0" x2="${c}" y2="${H}" stroke="#ffffff30" style="stroke-width:1px;vector-effect:non-scaling-stroke" />`).join("")}${Array.from({ length: H + 1 }, (_, r) => `<line x1="0" y1="${r}" x2="${W}" y2="${r}" stroke="#ffffff30" style="stroke-width:1px;vector-effect:non-scaling-stroke" />`).join("")}</g>`

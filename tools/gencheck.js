@@ -17,6 +17,7 @@
 //   outside   the replayed route goes around the structures (tools/outside.js outsideMap) over 10% of the time
 //   short     the generator's own drawn path stops before the piece's end (shown as a failed generation on the page)
 //   drawn     the generator's own drawn path is over half a row off the real replay
+//   shortflip ball / spider: over 30% of the flips move under 3 rows
 //   end       the last 3 columns of the route pass within a block of a hazard (an ending that lands on death)
 // Prints a line per type (share of seeds with each flag, worst example: seed + column) and, with --write,
 // knowledge/gencheck.json (the catalogue shows it under each generator). Measured: ~1-3 s a piece (most of it the
@@ -77,6 +78,11 @@ function checkPiece(z, tier) {
   // piece is 12+ rows and the route spans under 35% of them
   if (H >= 12 && route.length) { const ys = route.map(q => q[1]), span = (Math.max(...ys) - Math.min(...ys) + 1) / H;
     if (span < 0.35) f.low = { share: +span.toFixed(2), rows: `${Math.max(0, Math.min(...ys)).toFixed(0)}-${Math.max(...ys).toFixed(0)} of ${H}` }; }
+  // shortflip: ball / spider flips that move under 3 rows (Evgeni 2026-11-28: "some of the jumps are short distances ...
+  // we could extend them in theory more ... not some, like all"): over 30% of the legs (row at each press vs the next)
+  if (["ball", "spider"].includes(z.mode) && route.length && z.presses.length > 2) { const yAt = c => { let b = route[0]; for (const q of route) if (Math.abs(q[0] - c) < Math.abs(b[0] - c)) b = q; return b[1]; };
+    const ps = z.presses.map(p => [].concat(p)[0]), legs = []; for (let i = 0; i + 1 < ps.length; i++) legs.push(Math.abs(yAt(ps[i + 1] - 0.3) - yAt(ps[i] - 0.3)));
+    const sh = legs.filter(x => x < 2.9).length / legs.length; if (sh > 0.3) f.shortflip = { share: +sh.toFixed(2) }; }
   // short: the generator's own drawn path stops before the piece's end (Evgeni 2026-11-28: "the path should reach till the
   // end. any failing generation of physics is obviously a bug")
   if (z.path && z.path.length && z.path[z.path.length - 1][0] < W - 1.5) f.short = { col: +z.path[z.path.length - 1][0].toFixed(1) };
@@ -103,7 +109,7 @@ function run(keys, o) {
       z.key = key; const t = Date.now(); let f; try { f = checkPiece(z, o.tier); } catch (e) { f = { error: { why: e.message } }; } rows.push({ seed, f, ms: Date.now() - t }); }
     // (a type that plans on some seeds and not on others: the others are failed generations)
     if (rows.some(x => x.f)) for (const x of rows) if (x.noplan) { delete x.noplan; x.f = { noplan: { why: "no planned presses" } }; }
-    const planned = rows.filter(x => x.f), kinds = ["noplan", "dies", "short", "lazy", "slideable", "unforced", "tight", "slide", "outside", "low", "drawn", "end", "error"], sum = {};
+    const planned = rows.filter(x => x.f), kinds = ["noplan", "dies", "short", "lazy", "slideable", "unforced", "tight", "slide", "outside", "low", "shortflip", "drawn", "end", "error"], sum = {};
     for (const k of kinds) { const hit = planned.filter(x => x.f[k]); if (hit.length) sum[k] = { share: +(hit.length / planned.length).toFixed(2), example: Object.assign({ seed: hit[0].seed }, hit[0].f[k]) }; }
     res[key] = { pieces: planned.length, noplan: rows.filter(x => x.noplan).length, flags: sum, at: new Date().toISOString().slice(0, 16), opts: o };
     const s = Object.entries(sum).map(([k, v]) => `${k} ${Math.round(v.share * 100)}% (seed ${v.example.seed}${v.example.col != null ? " col " + v.example.col : ""}${v.example.cols ? " cols " + v.example.cols.join(",") : ""}${v.example.ms ? " " + v.example.ms + " ms" : ""}${v.example.share != null ? " " + Math.round(v.example.share * 100) + "%" : ""}${v.example.rows ? " " + v.example.rows + " rows" : ""}${v.example.why ? " " + v.example.why : ""}${v.example.how ? ": " + v.example.how : ""}${v.example.rows && typeof v.example.rows === "string" ? "" : ""})`);

@@ -19,7 +19,7 @@ try {
     { encoding: "utf8", windowsHide: true, maxBuffer: 1 << 24 });
   const m = JSON.parse(out);
   mains = { at: m.at, rows: m.levels.map(l => ({ n: l.n, name: l.name, rating: l.rating, route_pct: l.route_pct,
-    need: l.need, kind: l.route_kind, score: l.score, inputs: l.inputs, tight: l.tight, min_ms: l.min_ms,
+    need: l.need, kind: l.route_kind, score: l.score, score_model: l.score_model || null, est_stars: l.est_stars ?? null, label: l.label || null, score_parts: l.score_parts || null, inputs: l.inputs, tight: l.tight, min_ms: l.min_ms, route_bugs: l.route_bugs || [],
     attempts: l.attempts, flag: l.flag, stale: !!l.score_stale })) };
 } catch (e) { mains = { error: String(e.message || e).slice(0, 300) }; }
 

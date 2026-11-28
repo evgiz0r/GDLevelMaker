@@ -28,7 +28,7 @@
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, "..");
 const GR = require("./genrating.js"), OU = require("./outside.js"), SG = require("./sectiongen.js"), LS = require("./layoutsections.js"), SJ = require("../lib/scenejoin.js");
-const APRON = 5, HAZ = new Set(["^", "v", "o", "q", "s"]);   // hazard letters of the section maps (tools/layoutsections.js)
+const APRON = 3, HAZ = new Set(["^", "v", "o", "q", "s"]);   // hazard letters of the section maps (tools/layoutsections.js)
 const BPS = { "0.5x": 8.372, "1x": 10.386, "2x": 12.914, "3x": 15.6, "4x": 19.2 };   // blocks a second (planbuild.js)
 const PORTAL = { cube: "cube portal", ship: "ship portal", wave: "wave portal", ufo: "ufo portal", ball: "ball portal", swing: "swing portal", robot: "robot portal", spider: "spider portal" };
 const SPEEDN = { "0.5x": "0.5x speed", "1x": "1x speed", "2x": "2x speed", "3x": "3x speed", "4x": "4x speed" };
@@ -69,7 +69,7 @@ function closeBelow(map) {
 const STEP = { easy: "normal", normal: "hard", hard: "harder", harder: "extreme", extreme: "extreme" };
 // the presses a second a section should reach at its tier (rated levels: about 2 a second; the user: "not so sparse")
 const CPS_FLOOR = { easy: 1, normal: 1.2, hard: 1.5, harder: 1.8, extreme: 2 };
-const FLIPS = new Set(["ball", "spider", "wave", "cube-ud"]), LEAD = 4, TAIL = 5, SPLIT_S = 9, BANDED = new Set(["ship", "ufo", "wave", "swing"]);
+const FLIPS = new Set(["ball", "spider", "wave", "cube-ud"]), LEAD = 3, TAIL = 3, PRE = 6, SPLIT_S = 9, BANDED = new Set(["ship", "ufo", "wave", "swing"]);
 function joinPad(a, b) {
   const j = SJ.join(a, b), first = j.tiles.filter(q => q.c === 0), last = j.tiles.filter(q => q.c === j.n - 1), out = [];
   for (let k = 0; k < LEAD; k++) for (const q of first) if (q.t === "#") out.push({ t: "#", c: k, r: q.r });
@@ -141,8 +141,19 @@ function build(brief, o = {}) {
   // columns: each section ends where its song section ends (joins come out of the section's own length)
   let col = 0, prev = null, prevSpeed = "1x";
   const parts = [], tiles = [], portals = [], report = [], offsets = {};
-  for (const s of secs) {
-    const endCol = col + s.secs * BPS[s.speed];
+  // the portal on the beat (Evgeni on GDLM 78 v9: "on 40.49 there is a big beat, but we still didnt enter the portal ... it needs to
+  // match the speed (even entering the speed very slightly before the song)"): the next section's join and portal wall used to
+  // start AT the song's section change, so its portal came LEAD + join + 1 columns late (13 columns, 1.2 s, at 40.5 s). Now each
+  // section ends PRE columns before the change when a portal follows, so the wall lands on the beat; the timeline is kept
+  // absolute (tcol), so no drift builds up.
+  let tcol = 0;
+  const portalNext = (a, b) => b && (a.mode !== b.mode || a.speed !== b.speed || FLIPS.has(a.mode));
+  // o.pre[si]: this section's own lead, from a first pass (the join's length is known only once the next section exists)
+  const preOf = si => (o.pre && o.pre[si] != null ? o.pre[si] : PRE), aligned = [];
+  let tPrev = 0;
+  for (const [si, s] of secs.entries()) {
+    tPrev = tcol; tcol += s.secs * BPS[s.speed];
+    const endCol = Math.max(col + 16, tcol - (portalNext(s, secs[si + 1]) ? preOf(si) : 0));
     const beatCols = P * BPS[s.speed];
     let best = null, tier = s.tier;
     const floor = CPS_FLOOR[s.tier] || 1.2, cpsOf = c => c.ok ? c.presses / Math.max(1, s.secs) : 0;
@@ -166,7 +177,10 @@ function build(brief, o = {}) {
       z.speedName = s.speed; const c = LC.check(z);   // checked at its own speed, not 1x
       // a seed whose own solve flies over or under its structure is a secret way (Evgeni 2026-11-28): scored down by the share
       const around = c.ok ? OU.outsideMap(z.map, c.route) : 0;
-      const score = c.ok ? 100 + c.presses - Math.round(Math.max(0, floor - cpsOf(c)) * 20) - (c.tight && c.tight[0] && c.tight[0].ms < 60 ? 50 : 0) - Math.round(around * 300) : -1;
+      // lazy slides (Evgeni on GDLM 78 v9: the ship could hold / let go and slide past the gameplay): 8 a skipped press
+      const lazy = c.ok ? (c.slides || []).reduce((a, q) => a + q.skipped, 0) : 0;
+      if (lazy) console.log(`   s${s.i} seed ${seed}: ${c.slides.map(q => q.input + " skips " + q.skipped).join(", ")}`);
+      const score = c.ok ? 100 + c.presses - 8 * lazy - Math.round(Math.max(0, floor - cpsOf(c)) * 20) - (c.tight && c.tight[0] && c.tight[0].ms < 60 ? 50 : 0) - Math.round(around * 300) : -1;
       if (around > 0.05) console.log(`   s${s.i} seed ${seed}: the solve flies around the structure for ${Math.round(around * 100)}% of the way`);
       console.log(`   s${s.i} ${s.type} seed ${seed}: ` + (c.ok ? `solves, ${c.presses} presses, ${c.label}${c.tight[0] ? ", tightest " + c.tight[0].ms + " ms" : ""}` : `no (${c.why} at col ${c.dieCol})`));
       if (!best || score > best.score) best = { z, c, seed, score, tier };
@@ -183,6 +197,7 @@ function build(brief, o = {}) {
     // to put an extra portal for the gravity we want"): the next section was checked starting the right way up. No portal of
     // the same mode only to set the band again (he: "many portals where we dont really need to change the view").
     const fixGrav = prev && FLIPS.has(prev.raw);
+    if (prev && (mode !== prev.mode || s.speed !== prevSpeed || fixGrav)) aligned.push({ si: si - 1, late: +(col + (j ? j.portalAt : 0) - tPrev).toFixed(2), pre: preOf(si - 1) });
     if (prev && (mode !== prev.mode || s.speed !== prevSpeed || fixGrav)) portals.push({ c: col + (j ? j.portalAt : 0), row: prev.exitRow, mode: mode !== prev.mode ? mode : null, grav: fixGrav, speed: s.speed !== prevSpeed ? s.speed : null, from: prev.mode, next: col + (j ? j.n : 0) + 1 });
     const c0 = col + jn;
     // an apron after a mode portal: no hazard in the new section's first APRON columns (a section is generated and
@@ -216,7 +231,7 @@ function build(brief, o = {}) {
     // a jump, not walked into (the judge's "walked portal": official portals 93% taken on the move; Hellgate thread's run)
     const ground = (p.from === "cube" || p.from === "robot") && run0.b - run0.a >= 4, run = ground ? { a: run0.a + 1, b: run0.b } : run0;
     if (ground) extra.push(["block", c, run0.a]);
-    for (let r = run.a + 1; r <= Math.max(run.a + 1, run.b - 1); r += 3) { if (p.mode) extra.push([PORTAL[p.mode], c, r]); if (p.speed) extra.push([SPEEDN[p.speed], c - 1, r]); if (p.grav) extra.push([10, c + 1, r]); }
+    for (let r = run.a + 1; r <= Math.max(run.a + 1, run.b - 1); r += 3) { if (p.mode) extra.push([PORTAL[p.mode], c, r]); if (p.speed) extra.push([SPEEDN[p.speed], c - 2, r]); if (p.grav) extra.push([10, c - 1, r]); }
     for (let r = 0; r <= top; r++) if ((r < run.a || r > run.b) && (map[H - 1 - r] === undefined || ".D".includes(map[H - 1 - r][c]))) extra.push(["block", c, r]);
   }
   const objects = ["// built by tools/typebuild.js from section types (tools/sectiongen.js)"];
@@ -252,7 +267,7 @@ function build(brief, o = {}) {
     sectionsInfo: parts.map(p => ({ seed: p.seed, type: p.type, mode: p.mode, speed: p.speed, kind: p.kind, look: p.look, from: Math.round(p.c0), to: Math.round(p.c1), beat: p.b0 })),
     objects,
   };
-  return { spec, report, map, parts };
+  return { spec, report, map, parts, aligned };
 }
 module.exports = { plan, build, TYPES, gapOf };
 
@@ -261,7 +276,14 @@ if (require.main === module) {
   const a = process.argv.slice(2), opt = k => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : null; };
   if (!a[0]) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
   const brief = JSON.parse(fs.readFileSync(a[0], "utf8"));
-  const r = build(brief, { dry: a.includes("--dry"), seeds: +(opt("--seeds") || 6), briefFile: a[0] });
+  let r = build(brief, { dry: a.includes("--dry"), seeds: +(opt("--seeds") || 6), briefFile: a[0] });
+  // the portals on the beat: a second pass with each section's lead set from the first pass's joins (a hair early: 0.5 column)
+  const off = (r.aligned || []).filter(q => Math.abs(q.late + 0.5) > 1);
+  if (off.length && !a.includes("--dry") && !a.includes("--no-align")) {
+    console.log(`portals off the beat by ${off.map(q => q.late).join(", ")} columns: a second pass with the leads set`);
+    const pre = {}; for (const q of r.aligned) pre[q.si] = Math.max(0, q.pre + q.late + 0.5);
+    r = build(brief, { dry: false, seeds: +(opt("--seeds") || 6), briefFile: a[0], pre });
+    console.log(`after: ${r.aligned.map(q => q.late).join(", ")} columns from the beat`); }
   r.report.forEach(l => console.log(l));
   if (a.includes("--map")) console.log(r.map.join("\n"));
   const out = path.join(ROOT, brief.out);

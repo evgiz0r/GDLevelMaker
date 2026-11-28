@@ -59,6 +59,16 @@ Claude writes the answer as a doc in collection `claudestatus`: `{part: "sec:<ke
 "play", state: applied | read | question | passed, reply, at}` (newest `at` per part wins; a later edit of his reopens it).
 Every time Claude handles board items it writes these, and a `designsend` stamp `{at, by: "claude"}`.
 
+**Reading the queue (2026-11-28): every note on a page is Claude's to find, sent or not.** Evgeni's ball and spider notes,
+typed in the 🎲 generator boxes at 11:00, sat unread for 1.5 h: he never pressed 📨, no session listed the db, and an answer
+written for the spider note misread it. He: "its in the comments there, why didnt you get it" -- "bugs in those iterative
+ui issues are not local, always a general thing". So on EVERY wake, the session that owns a workbook dumps the page's note
+collections and its answers with ArtifactData `list` + `out_dir` into one folder (catalogue: designnotes, designmarks,
+designsecs, designdraw, claudestatus) and runs `node tools/notequeue.js <folder>`: the newest revision per part, not empty,
+with no newer claudestatus answer (or `<mid>-claudeseen` for a mark), is open; it says "(never sent)" when 📨 was not pressed.
+Answer each open note in claudestatus quoting his words in a few, so a misread shows. A new page with notes adds its
+collections to that list here.
+
 **genroute (2026-11-27): a page that can't run a job queues it in the db.** The catalogue can't solve a 🎲 piece in the
 page, so it writes each generated piece to collection `genroute` (doc id = its gen key, `state: "asked"`, with its map);
 〰 path also pings Claude. Claude: ArtifactData list genroute (out_dir) -> `node tools/genroute.js <dir>` -> update each
@@ -68,6 +78,9 @@ Since 2026-11-28 every piece is queued (with its planned `presses`), and genrout
 replayed in real physics (layoutcheck planCheck). The page draws that line instead of the generator's own sketch, which
 can be ~1 row off (Evgeni saw it cross saws). The feedback box under a piece is per GENERATOR: designnotes part
 `genT:<type>` (Evgeni: "the comment should be for the generator, not the specific generation").
+Generator EXTRAS (pads, orbs, ...; 2026-11-28) need the sim, so a 🎲 piece with extras goes to genroute with
+`extras, rows, bpm, beats`; tools/genroute.js makes it again in node (sectiongen.make with them) and writes `xmap` (the map
+with the extras) and `xcount`; the page draws `xmap` once it is back and says "waiting" until then.
 
 **A db snapshot replaces your objects mid-loop (2026-11-28).** The catalogue's 📨 saved each sent mark in a loop; the first
 save's db snapshot rebuilt the MARKS list, so the "sent" stamps set on the old objects were lost for every later mark and

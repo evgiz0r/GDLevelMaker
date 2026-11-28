@@ -549,3 +549,28 @@ structure deco pass places them per section. **Background examples:** `node tool
 level with the theme's scene once per sky + background option (a, b, c), labelled, props on (`--no-props` to compare).
 Open: GD's art is only on the PC, so the cloud pictures show the props as shapes; his verdict in the viewer / game; the
 animated fire objects' speed; thorns not in hellgate yet (black on dark rock).
+
+## Living scenery (2026-11-28)
+
+Evgeni: "dragons flying shooting something behind us, war of zombies appearing here and there walking. initially can be just
+the surrounding, but as it gets better it can also become part of the hazards". Plan: the Claude Doc "Living scenery in
+gameplay" (https://claude.ai/artifact/N5GSsYnUvgbb1SLjKUJkvt). Tool: `tools/livescene.js` (test `node tests/livescene.js`).
+
+- **Events, deco only (phase 1):** `horde` (zombie silhouettes, ~9 objects each, legs swung on half beats, marching at the
+  player, rising in and sinking out), `flyby` (a chase-kit dragon locked to the player, crossing from behind to ahead),
+  `strafe` (a fly-by that spits fireballs into layer B2, aimed under and ahead of the route). Groups 6001-6999, channels 1101+.
+- **Placed where it can be seen:** `openBand()` = a band in GD's cube camera view (player 205 over the view's bottom, view 320
+  tall, lib/camera.js) for the event's whole length, mostly clear of blocks and hazards, and (sky events) 35+ units off the
+  route's own heights. Finding: Hellgate 5-55 s has ONE strip of sky that passes (47-50 s, for a 62-unit dragon); dense
+  levels need small actors and short (3 s) sky events, or events in the open parts (auto, flights).
+- **Silhouettes:** the kit's creature colours pulled 70% to a dark backdrop tone (`hellgate_chase.kit({tint})`), so a
+  dragon behind the play never reads as a hazard (the first try, in the kit's red, sat by the spikes looking like one).
+- **Checks (`check()`, `node tools/livescene.js check <level> --route-of <base>`):** FAKE HAZARD (fire-coloured deco on a
+  front layer by the route), IN THE WAY (our pieces on a play layer within 60 units of the route), BUDGET (1500 in 10 s),
+  CROWDING (events under 8 s apart), HIDDEN (an event with no open band in view).
+- **Lab:** `node tools/livescene.js lab` -> `levels/lab/gdlm_lab_live_scenery.gdlvl` (GDLM 44 + a horde at 6-19 s and a
+  strafe at 47-50 s; same gameplay, its route copied). The viewer draws movers where they start: the walking and flying
+  show only in GD or video.js.
+- **Open:** placement by song impacts and feel (impacts.js, feel.js) and the theme kit's creatures; a make.js deco stage
+  `"live": true` (off by default); the zombie in GD art terms checked in the game; phase 2, events that turn into hazards
+  (presses first, a ~1 s warning glow).

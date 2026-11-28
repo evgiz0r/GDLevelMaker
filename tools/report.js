@@ -5,6 +5,7 @@
 //   Difficulty   lib/difficulty.js on the route: ~attempts and the tier word
 //   Fairness     tools/fairness.js flags on the route (deaths that are not the player's fault); --no-fair skips it (~1 min)
 //   Taste        tools/taste.js: 0-100 against featured levels of the band (static measures)
+//   Visual       tools/visualjudge.js: a vision model's notes at each portal / section change (stored per level version) -- WARNINGS, never a score or gate
 //   Layout       nine 0-10 sub-scores from tools/judge.js's notes and stats; the total is their mean minus 0.2 per point
 //                any of them falls under 6 (GDLM 44 v7: 2.7, it was 6.6 before the v8 checks):
 //                  balance  how close the sections' and the pieces' clicks a second and the pieces' tightest windows are,
@@ -25,7 +26,7 @@
 if (require.main === module) require("./heavy.js").claim();   // fairness replays the route: one heavy-job slot
 "use strict";
 const fs = require("fs"), path = require("path");
-const RANK = { "uneven piece": -4, "too much cube": -3, "no reverse": -3, "walked portal": -2, "flat transition": -2, "abrupt switch": -2, "ground start": -2, "no rests": -2, "unseen roof": -1, "pointless orb": 0, "few clicks": 1, "gap": 2, "long corridor": 3, "same corridor": 4, "no variety": 5, "too easy": 6 };
+const RANK = { "uneven piece": -4, "too much cube": -3, "no reverse": -3, "lazy slide": -5, "late portal": -3, "walked portal": -2, "flat transition": -2, "dead transition": -2, "abrupt switch": -2, "ground start": -2, "no rests": -2, "unseen roof": -1, "pointless orb": 0, "few clicks": 1, "gap": 2, "long corridor": 3, "same corridor": 4, "no variety": 5, "too easy": 6 };
 
 function report(file, opt = {}) {
   const { readGdlvl, GD } = require("./io.js"), S = require("./solutions.js"), J = require("./judge.js");
@@ -53,6 +54,16 @@ function report(file, opt = {}) {
       out.moments = { strong: r.length, flat: r.filter(m => !m.ok).length };
       for (const m of r) if (!m.ok) j.notes.push({ kind: "flat transition", t: m.t, x: run.path[Math.min(run.path.length - 1, Math.round(m.t * 240))].x / 30,
         note: `a strong beat (${m.kind} ${m.strength}) at a section change and nothing happens` }); } } catch (e) { out.moments = { error: e.message.slice(0, 80) }; }
+  // the transitions themselves (Evgeni on GDLM 78 v9): no press for long around a section change, a portal late after the big beat
+  // before it (it should land on it, a hair early), and lazy slides (tools/slides.js: hold / let go skips 3+ presses)
+  try { const song = ((L.rec.fields || []).find(f => f.key === "k45") || {}).value, from = +((/kA13,([\d.]+)/.exec(L.level.header) || [0, 0])[1]);
+    const tr = require("./moments.js").transitions({ objects: L.level.objects, path: run.path, events: sol.events, music: song ? require("./sections.js").load(song).music : null, from });
+    const xAt = t => run.path[Math.min(run.path.length - 1, Math.round(t * 240))].x / 30;
+    for (const q of tr) { if (q.gap != null && q.gap > 1.6) j.notes.push({ kind: "dead transition", t: q.t, x: xAt(q.t), note: `${q.gap} s with no press around the section change (want 1.6 s or less)` });
+      if (q.late != null && q.late > 0.15) j.notes.push({ kind: "late portal", t: q.t, x: xAt(q.t), note: `the portal comes ${q.late} s after the strong beat (${q.beat}) it belongs to: put it on the beat, a hair early` }); }
+    const sl = require("./slides.js").slides(GD, w, sol.events, run.path);
+    for (const q of sl) j.notes.push({ kind: "lazy slide", t: q.t0, x: q.x0, note: `${q.mode}: ${q.input} the whole way from here skips ${q.skipped} presses (to ${q.t1} s)` });
+    out.transitions = { dead: tr.filter(q => q.gap > 1.6).length, late: tr.filter(q => q.late > 0.15).length, slides: sl.length }; } catch (e) { out.transitions = { error: e.message.slice(0, 80) }; }
   // layout sub-scores from the judge
   const n = k => j.notes.filter(x => x.kind === k), cl = v => Math.max(0, Math.min(10, +v.toFixed(1)));
   const cps = j.sections.filter(s => s.dur >= 2).map(s => s.clicks / s.dur), mean = cps.reduce((a, b) => a + b, 0) / Math.max(1, cps.length);
@@ -67,13 +78,18 @@ function report(file, opt = {}) {
   const st = j.stats || {};
   const sub = { balance: cl(10 * (1 - Math.min(1, (cv + (st.cpsCv || 0) + 0.8 * (st.winSd || 0)) / 2)) - Math.min(3, 0.75 * n("uneven piece").length)),
     modes: cl(10 - (st.cubeShare > 0.5 ? 25 * (st.cubeShare - 0.5) + 2 : 0) - (n("no reverse").length ? 6 * (1 - Math.min(1, (st.upShare || 0) / 0.15)) + 2 : 0)),
-    transitions: cl(10 - 2 * n("walked portal").length - 1.5 * n("abrupt switch").length - 2 * n("ground start").length - 1.5 * n("flat transition").length),
+    transitions: cl(10 - 2 * n("walked portal").length - 1.5 * n("abrupt switch").length - 2 * n("ground start").length - 1.5 * n("flat transition").length - 1 * n("dead transition").length - 1.5 * n("late portal").length),
     rests: cl(10 * Math.min(1, (st.restsPerMin || 0) / 8)), flow: cl(10 - 3 * gapS), variety: cl(10 - 2.5 * (n("no variety").length + n("same corridor").length)),
-    pacing: cl(10 - 2 * n("long corridor").length), clarity: cl(10 - 3 * n("pointless orb").length - 3 * n("unseen roof").length), ending: n("flat ending").length ? 4 : 10,
+    pacing: cl(10 - 2 * n("long corridor").length), clarity: cl(10 - 3 * n("pointless orb").length - 3 * n("unseen roof").length - 2 * n("lazy slide").length), ending: n("flat ending").length ? 4 : 10,
     height: heightScore(require("./heightspread.js").spreadOf(run.path)) };
   const vals = Object.values(sub), meanSub = vals.reduce((a, b) => a + b, 0) / vals.length;
   out.layout = Object.assign({ score: cl(meanSub - 0.2 * vals.reduce((a, v) => a + Math.max(0, 6 - v), 0)) }, sub);
   out.deco = null;   // judged later
+  // the visual judge (tools/visualjudge.js): a vision model's notes at each portal / section change. WARNINGS only: they
+  // never touch a score, a gate or the top notes; stale (the level changed since) is said, not hidden
+  try { const v = require("./visualjudge.js").stored(file, L.levelStr);
+    if (v) out.visual = { current: v.current, model: v.model, at: v.at, render: v.render, overall: v.overall,
+      notes: v.notes.map(x => ({ kind: "visual: " + x.cat, t: x.t, note: x.note })) }; } catch (e) {}
   out.notes = j.notes.slice().sort((a, b) => (RANK[a.kind] ?? 9) - (RANK[b.kind] ?? 9) || a.t - b.t).slice(0, 5);
   out.allNotes = j.notes.length;
   // pins on the level map: --geo <map>.geo.json (tools/levelmap.js writes it) -> fx, fy (0-1 on the picture) per note
@@ -102,6 +118,8 @@ function text(r) {
     fa ? f("Fairness", fa.error ? "(error) " + fa.error : fa.flags ? `${fa.flags} unfair spot${fa.flags > 1 ? "s" : ""}: ${fa.worst.join(", ")}` : "no unfair spots") : null,
     f("Taste", r.taste.error ? "(error)" : `${r.taste.score}/100`),
     f("Deco", "not judged yet"),
+    r.visual ? f("Visual", `${r.visual.notes.length} warning${r.visual.notes.length === 1 ? "" : "s"} (${r.visual.model}, ${r.visual.render || "?"} render, ${r.visual.at}${r.visual.current ? "" : ", STALE: level changed since"}; never a gate)`) : f("Visual", "not reviewed (node tools/visualjudge.js shots <level>)"),
+    ...(r.visual ? r.visual.notes.slice(0, 5).map(x => `  ! ${x.t} s ${x.kind}: ${x.note}`) : []),
     `Top notes (${r.notes.length} of ${r.allNotes}):`, ...r.notes.map((x, i) => `  ${i + 1}. ${x.t} s, block ${x.x}: ${x.kind}: ${x.note}`)];
   return L.filter(Boolean).join("\n");
 }
