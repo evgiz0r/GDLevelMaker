@@ -45,6 +45,19 @@ const T = {
   colour: (x, ch, rgb, secs, opacity = 1) => K.colour(x, ch, rgb, secs, opacity),
   pulse: (x, target, rgb, fin, hold, fout, o = {}) => K.pulse(x, target, rgb, fin, hold, fout, o),
   zoom: (x, to, secs) => K.zoom(x, to, secs),
+  // ---- the camera and the player (keys read from 583 rated 2.2 levels, EFFECTS.md "Camera and player triggers"; seen
+  // in GD only -- our viewer does not draw them yet). Every camera trigger: 10 seconds, 30 easing, 85 rate (2).
+  zoomE: (x, to, secs, ease = 0) => K.trig(1913, x, { 371: r3(to), 10: r3(secs), 30: String(ease), 85: "2" }),
+  // camera rotate 2015: to deg (or BY deg with o.add, key 70); a continuous spin = add 360 re-fired every secs
+  camRotate: (x, deg, secs, o = {}) => K.trig(2015, x, Object.assign({ 68: r3(deg), 10: r3(secs), 30: String(o.ease || 0), 85: "2" }, o.add ? { 70: "1" } : {})),
+  // camera offset 1916: shift the view by (dx, dy) units (0, 0 = back to normal)
+  camOffset: (x, dx, dy, secs, ease = 0) => K.trig(1916, x, { 28: r3(dx), 29: r3(dy), 10: r3(secs), 30: String(ease), 85: "2" }),
+  // shake 1520: strength 75 (1-5 in rated levels), for secs
+  shake: (x, strength, secs) => K.trig(1520, x, { 75: r3(strength), 10: r3(secs) }),
+  hidePlayer: x => K.trig(1612, x, {}),
+  showPlayer: x => K.trig(1613, x, {}),
+  trailOn: x => K.trig(32, x, {}),       // the ghost trail on / off (no keys)
+  trailOff: x => K.trig(33, x, {}),
 };
 
 // Easing as rated 2.2 levels use it (EFFECTS.md "How rated levels move", 8 levels, 16k moves): exponential out (12) for
