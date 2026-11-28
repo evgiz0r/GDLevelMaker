@@ -26,7 +26,7 @@ try {
   const early = [{ type: "press", tick: 1 }, { type: "release", tick: 4 }];
   fs.mkdirSync(path.join(repo, "knowledge", "mains"), { recursive: true });
   fs.writeFileSync(path.join(repo, "knowledge", "mains", "routes.json"), JSON.stringify({ levels: [
-    { n: 1, name: "Stereo Madness", levelSha: sha(lv), ok: true, kind: "human", events: sol.events },
+    { n: 1, name: "Stereo Madness", levelSha: sha(lv), ok: true, kind: "human", events: sol.events, coins: { ok: true, kind: "human", events: sol.events } },
     { n: 2, name: "Back On Track", levelSha: "different", ok: true, kind: "human", events: sol.events },
     { n: 3, name: "Polargeist", levelSha: sha(lv), ok: true, kind: "human", events: early },     // jumps at the start: dies at the spike
     { n: 4, name: "Dry Out", levelSha: sha(lv), ok: true, kind: "human", events: early, raw: { ok: true, events: sol.events } },   // human dies, raw clears
@@ -47,17 +47,23 @@ try {
   ok(rows[3] && rows[3].state === "clears" && rows[3].kind === "raw", "level 4: the human route dies, the raw solve from git clears and is used");
   ok(rows[4] && rows[4].state === "no route", "level 5: an empty route counts as no route");
   ok(rows.filter(x => x.state === "no route").length === 18, "levels 5-22: listed without a route");
-  ok(r.status === 1 && rep && rep.mains.ready === 3, "not READY while a route from git dies (exit 1)");
+  ok(r.status === 0 && rep && rep.mains.ready === 3, "READY with a route from git that dies (exit 0): the rest replay");
+  ok(c("main levels whose route from git dies") && !c("main levels whose route from git dies").needed && /3/.test(c("main levels whose route from git dies").detail), "a dying route: a warning naming the level, with the fix");
+  ok(c("git checkout") && !c("git checkout").ok && !c("git checkout").needed, "a copy with no .git: a warning, not a failure");
   ok(c("main levels without a route in git") && !c("main levels without a route in git").needed, "levels without a route: a warning, not a failure");
   const o1 = JSON.parse(fs.readFileSync(path.join(repo, "local", "official_01.json"), "utf8"));
   ok(o1.level === lv && o1.solution.ok, "local/official_01.json has the level from the game and the route");
+  const d4 = path.join(repo, "local", "difficulty", "04.json"), c1 = path.join(repo, "local", "official_01_coins.json");
+  ok(fs.existsSync(d4) && JSON.parse(fs.readFileSync(d4, "utf8")).events.length === sol.events.length, "level 4: the raw solve restored to local/difficulty/04.json");
+  ok(fs.existsSync(c1) && JSON.parse(fs.readFileSync(c1, "utf8")).solution.ok, "level 1: the all-coins route restored to local/official_01_coins.json");
+  ok(!fs.existsSync(path.join(repo, "local", "difficulty", "01.json")), "no raw solve in git: nothing written");
   const o3 = JSON.parse(fs.readFileSync(path.join(repo, "local", "official_03.json"), "utf8"));
   ok(o3.solution.ok === false && o3.solution.dieX > 0, "local/official_03.json: ok:false at its death spot");
   const idx = fs.readFileSync(path.join(repo, "viewer", "levels.local.js"), "utf8");
   ok(/official 1: Stereo Madness/.test(idx) && /official 22: Dash/.test(idx), "the viewer's list has the main levels");
   // a second run, no --game: found again through local/gd_paths.json, existing routes kept
   const r2 = run(["--json"]), rep2 = JSON.parse(r2.stdout);
-  ok(rep2.checks[1].detail.includes("local/gd_paths.json"), "second run finds the game through local/gd_paths.json");
+  ok(rep2.checks.find(x => x.name === "Geometry Dash found").detail.includes("local/gd_paths.json"), "second run finds the game through local/gd_paths.json");
   ok(rep2.mains.rows[0].state === "kept", "second run keeps routes already in local/");
   // gdpaths with nothing set and nothing saved: says not found, keeps the old default
   const r3 = cp.spawnSync(process.execPath, [path.join(ROOT, "tools", "gdpaths.js"), "--json"], { env: Object.assign({}, env, { GD_GAME: path.join(tmp, "nowhere") }), encoding: "utf8", windowsHide: true });

@@ -101,7 +101,7 @@ not after it:
 - **Every level ends with the Claude signature, quiet: the last 5 s, out of the gameplay.** Evgeni (2026-11-26): "from now-on
   everywhere, we add the latest end screen claude sign on every level we make"; (2026-11-27): "cut our signature for now from actual gameplay and make it appear in like the last 5 seconds of the level not bothering the game play with whatever effects". Default in make.js
   and autobeat: `signature.js overlay` -- no stage, no run-on, no beat effects; it fades in at T - 5 s in the view's top right,
-  behind the player, and rides with the camera to the end. The auto outro (`"outro": <seed>`) and the stage sign
+  behind the player, and rides with the camera to the end. What it shows (2026-11-28): "tune down the joke of the signature. so its made by humans, but with claude, and somehow a wand a human holds" -- "its like its empowering the human, not replacing": one human holding a wand tipped with the Claude spark, "MADE BY HUMANS" / "with Claude" (the description line: "Made by humans, with Claude"). The auto outro (`"outro": <seed>`) and the stage sign
   (`"signature": {"style": "stage"}`, autobeat `--ending beat|outro`) are options now (BUILDING.md section 5).
 - **Process rules go in the repo, never only in a message.** The user (2026-11-24): "never just for one session
   if its a big repeatable process". A rule, a process step or a lesson that one session was told applies to
@@ -116,6 +116,12 @@ not after it:
   while the user plays (loggers, recorders, jobs) stays off the input path: a hook callback only queues (no I/O,
   no lookups), recorders only read, heavy jobs run at idle priority with GD open. A new tool of this kind is
   checked for added input delay before it runs during play.
+- **Anything we keep local-only has an easy local rebuild.** (Evgeni, 2026-11-28: "keep making sure getting those stuff
+  locally for people who clone the repo is not hard".) RobTop's levels, art and songs, other people's levels and anything
+  made from them stay out of git -- so the change that makes something local-only also gives it a row in
+  `tools/rebuild_local.js` (what, from where, one command, measured time) and SETUP.md's table. A cloner runs
+  `node tools/setup.js` then `node tools/rebuild_local.js --quick`; `node tests/rebuild_local.js` checks the rows.
+  Personal data (his recordings, save, marks) is listed as personal: it cannot be rebuilt.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
@@ -311,9 +317,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 
 ## Files
 
+- **PERSONAL.md** -- proposal (not done): what is fitted to Evgeni (difficulty, fairness, judge, votes, soft rules) vs general, and a profile layer so a cloner can use their own.
 - **WORKBOOKS.md** -- the claude.ai workbook pages: every bug found in the app, the limits, how to test.
-- **Setup on any computer** (SETUP.md: the steps an AI agent follows): `tools/setup.js` (find GD, load the main levels,
-  check), `tools/gdpaths.js` (where GD's game, levels and save are; every tool reads GD's files through it -- never hardcode
+- **Setup on any computer** (SETUP.md: the steps an AI agent follows): `tools/setup.js` (find GD, load the main levels
+  with routes, raw solves and coin routes, unshallow a shallow clone, check), **`tools/rebuild_local.js`** (every local-only
+  item, whether this computer has it, one command each, `--quick`; test `node tests/rebuild_local.js`), `tools/gdpaths.js` (where GD's game, levels and save are; every tool reads GD's files through it -- never hardcode
   the Steam path), `tools/mains_routes.js` (the main levels' routes in git, `knowledge/mains/routes.json`, written by
   `mains.js export`: `import` replays them on a new computer's own game). Test: `node tests/setup.js`.
 - `lib/gd.js` -- the format: base64url + gzip layers, the record (plist) and the level string.
@@ -491,7 +499,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   <level.gdlvl | save:<name> | official:N> [--at 2,5] [--rec <video> --t0 <s>]` -> PNGs in `local/shots/`.
   **The whole level as one picture with its path:** `node tools/levelmap.js <level> [--brief briefs/NN.json]`
   -> `local/maps/<name>.jpg` (viewer: "level map").
-  **Every level ends with the signature** (robot + human, "Made by Claude (and some humans)"):
+  **Every level ends with the signature** (a human with a Claude wand, "Made by humans, with Claude"; quiet, the last 5 s):
   `tools/signature.js` (signature() objects, describe() for the description).
 - **Deco catalogue** (knowledge/objects/README.md): `tools/catalogue.js index | sheets | usage` --
   every id with its picture on contact sheets (`local/catalogue/`, or browse `viewer/catalogue.html`),
@@ -530,6 +538,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   session): `lib/pixelart.js` (canvas + converter), `tools/pixelart.js <image.png>` (picture -> objects,
   `--max-objects`), `lib/props.js` (`put` / `place` / `list` by name: tree, pumpkin, house, robot, ...;
   spec key `"props"` in make.js), `tools/props.js sheet | level`. Test: `node tests/pixelart.js`.
+- **Art -> GD objects, and moving it** (ART.md "Creatures and animation"): `tools/svg2gd.js` (any SVG -> exact GD shapes: triangles as pairs of right triangles 693, disks, gradient bands; `<g id>` parts for triggers; test `node tests/svg2gd.js`), `tools/artlab.js raster | convert | demon | level`; reusable creatures: `demonObjects(o)` (hand, 66 objects, parts head/horn/jaw/eyes/glow) and `await dragonObjects(o)` (SVG, 173 body + 31 wing, wing + hinge groups for a flap) (original art in `art/src/`, method comparison, hand-built demon, the animated lab `levels/lab/gdlm_art_lab.gdlvl`), `lib/paintfit.js` `target.mask` (a PNG sprite fitted with shapes kept inside it).
 - **The user's drawings -> levels** (SKETCH.md: reading a drawing into a spec, then making it fair;
   the GDLM 46 lessons).
 - **The whiteboard: draw a level freehand** (DRAW.md: no grid, pens for ground / blocks / hazards / deco / "I jump here" /
@@ -555,7 +564,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **`tools/judge.js` -- the judge: Evgeni-style notes pinned to spots** (few clicks in a section, gaps, a corridor too long or
   shaped like an earlier one, no variety, an orb with no reason, too easy), from a level's saved route; `--vs <marks.json>` compares
   them with his marks (tests/judge.js: 11 of his 13 v4 Hellgate marks, `knowledge/judge/`). Run it on every build before he sees it.
-- **Visual judge trial** (knowledge/visual_judge.md): `tools/shoot.js --trail --label` (the route drawn on each frame) + `tools/contactsheet.py` (3x3 sheets) -> a vision model's review; GDLM 78: Haiku and Sonnet each found 3 of Evgeni's 7 picture-visible notes, missed the path bug and indicators; Haiku ~$0.001 a review.
+- **`tools/visualjudge.js shots | review | put | show <level>` -- the visual judge** (knowledge/visual_judge.md; Evgeni 2026-11-28): a frame at each portal / section change with the route drawn on (`shoot.js --trail`), 2x2 sheets (`tools/contactsheet.py`), a Haiku review stored per level version in knowledge/visual_judge/; report.js shows its notes as warnings, never a gate. Test `node tests/visualjudge.js`. Trial: ~$0.001 a review, finds odd portals, flat structures, clutter; misses path bugs and indicators.
 - **`tools/report.js <level>` -- the judge report** (Evgeni, 2026-11-26: "not too big, with scores"): one short card --
   Layout 0-10 (balance of sections and pieces, modes -- cube share and upside down --, transitions, rests, flow, variety, pacing, clarity, ending; made stricter 2026-11-26 after Evgeni: "the judge seems to be too nice"), difficulty, unfair spots, taste, deco (later), the top 5
   notes; `--geo <map>.geo.json` (levelmap.js writes it beside each map) pins the notes on the level map. Run it on every build.
@@ -581,7 +590,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **`tools/slides.js <level>` -- lazy slides** (Evgeni 2026-11-28: the ship "could slide ... holding or releaseing completely skipping a lot of gameplay"): from each input of the saved route in a flying mode, hold (or let go) for good; living through 3+ of the route's presses is a secret way. In layoutcheck (`slides`), typebuild's seed score and the judge report.
 - **`tools/moments.js <level>` -- transition moments** (Evgeni 2026-11-28: a strong beat at a section change must make something happen): `plan` = the orchestrator's events on those beats (typebuild, effects gateShut / riseReveal / slabsFall / cameraBreath), `check` = the judge's "flat transition" (report.js); BUILDING.md "Transition moments", who does what and the knobs; test `node tests/moments.js`.
 - **`tools/typebuild.js <briefs/NN.types.json> --run` -- a level from SECTION TYPES in one command** (no lego): song sections + feel -> a type per section generated fresh (tools/sectiongen.js) and checked alone -> joined with portal walls -> make.js (deco pass with a look per section kind, own sky / backdrop per section, one calm effect each via tools/scenes/typefx.js) -> judge report; BUILDING.md section 0 (GDLM 76).
-- **HELLGATE.md -- GDLM 44, the benchmark level** (our first uploaded one; Evgeni 2026-11-28): the target -- the whole song, gameplay to 176 s, ~40 s of auto (visible, then weird), ~16 s of animation to the ending -- the order of work and where it stands.
+- **`tools/hellgate_auto.js` -- Hellgate's auto part, the chase** (180.7-215.4 s: autobeat `--offset` + hellgate deco + the chase kit's demons, dragons and fireballs aimed at each dodge's would-have-been spot; AUTO.md; `node tests/hellgate_auto.js`).
+- **HELLGATE.md -- GDLM 44, the benchmark level** (our first uploaded one; Evgeni 2026-11-28): the target -- the whole song, gameplay to 176 s, ~40 s of auto (visible, then weird), ~16 s of animation to the ending -- the order of work and where it stands. Its ending animation: **`tools/hellgate_ending.js`** ("the gate closes", 215.4-231 s, standalone from song 213.8 s; `parts()` for stitching; test `node tests/hellgate_ending.js`).
 - `tools/mapbeats.py` (beat and bar lines over a levelmap.js picture). `tools/hellgate_build.js` -- GDLM 44 v3's builder: song part + local grid -> sections -> brickpick / fly-path -> specs/44_hellgate.json (+ .plan.json). **`tools/planbuild.js <briefs/NN.plan.json>`** -- the same builder with the section plan as data, for any level (GDLM 73 sunny streets; LEGO.md "The same builder for any level").
 - **Outside sources** (knowledge/external_sources.md): level databases and dumps, creation tools, record and tier lists (Pointercrate, AREDL, GDDL), other AI level makers, with APIs, terms and how each helps.
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
@@ -803,6 +813,10 @@ The viewer draws moving objects where they start.
   refreshed, and some effect when i click refresh"): catalogues, boards, the viewer pages, every artifact we make. Paste
   `tools/snippets/refresh.html` once (lego_page.js does it): a button top-right, "last refreshed HH:MM" beside it, a spin on
   click, then the page reloads with fresh data keeping its view and flashes "refreshed ✓". Fetch data with `cache: "no-store"`.
+- **Every note on a page is read, sent or not** (Evgeni, 2026-11-28: "its in the comments there, why didnt you get it"; his
+  ball / spider notes sat unread 1.5 h, never 📨 sent): on every wake the session that owns a workbook dumps its note
+  collections and runs `node tools/notequeue.js <dump>` (WORKBOOKS.md "Reading the queue"), and answers each open note in
+  claudestatus quoting his words.
 - **WORKBOOKS.md: every bug and quirk of pages in the claude.ai app** (Evgeni, 2026-11-27: "whatever knowledge of bugs we
   gain working with workbooks we want to know always on all sessions everywhere"). Read it before building or changing any
   workbook page; a new bug goes in as a row there in the same commit as its fix (e.g. db data comes back frozen: copy it).

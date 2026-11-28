@@ -203,7 +203,7 @@ function exportRoutes(push) {
     const files = ["knowledge/mains/routes.json", "knowledge/lego.json", "knowledge/lego_windows", "knowledge/measurements.jsonl"].filter(f => fs.existsSync(path.join(ROOT, f)));
     git(["add"].concat(files));
     git(["commit", "-m", "Main levels' routes and measurements re-exported by tools/mains.js", "--"].concat(files));
-    for (let i = 0; i < 4; i++) { try { git(["pull", "-q", "--no-edit", "origin", "main"]); git(["push", "-q", "origin", "HEAD:main"]); log("mains: export: pushed"); return; } catch (e) { if (i === 3) throw e; } }
+    for (let i = 0; i < 4; i++) { try { git(["checkout", "--", "viewer/levels.js"]); git(["pull", "-q", "--no-edit", "origin", "main"]); require("./index_levels.js").buildIndex(); git(["push", "-q", "origin", "HEAD:main"]); log("mains: export: pushed"); return; } catch (e) { if (i === 3) throw e; } }
   } catch (e) { log("mains: export: commit/push failed: " + String(e.message).split("\n")[0]); }
 }
 

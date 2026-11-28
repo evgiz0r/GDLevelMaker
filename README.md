@@ -35,7 +35,7 @@ source column), or "not measured".
 | your practice attempts in GD -> one stitched start-to-end run, checked in the sim | `node tools/stitch.js [<level>] --save` | 2: built 2026-11-25 | not measured | GEODE.md "Practice -> full run" |
 | your GD save -> your levels and demons with attempts and best % | `node tools/save_stats.js --demons` | 3 | not measured | DIFFICULTY.md |
 | song start point and song switches mid-level | spec / brief key `"music"` (make.js) | 2: the start point works; switches heard in the viewer and video, not checked in the game yet | part of make | MUSIC.md |
-| the whole project -> set up on another computer, main levels playing | `node tools/setup.js` | 3: tested on a fresh copy; the routes replay on the owner's real levels (21 of 22 clear); not yet tried on a second computer | ~15 s (replays: 14.6 s) | SETUP.md |
+| the whole project -> set up on another computer, main levels playing | `node tools/setup.js`, then `node tools/rebuild_local.js --quick` for the rest of `local/` | 3: tested on a fresh clone with the owner's real levels (2026-11-28: 19 of 22 replay, 16 and 19 wait on a re-solve, Dash unbeaten); not yet tried on a second computer | setup ~35 s in the cloud (Fingerdash's replay 12 s) | SETUP.md |
 
 **Ideas that would be easy from here** (not built): a level -> a practice copy with start positions at its hard parts
 (difficulty per section exists); a level + another song -> the same level re-synced to the new beats; two
@@ -46,7 +46,7 @@ viewer from the windows and costs already measured. USE_CASES.md lists every use
 
 You need your own Geometry Dash (Steam, 2.2) and Node 18+. **[SETUP.md](SETUP.md)** is written so an AI agent can do
 the whole setup itself: open Claude Code (or another coding agent) in this folder and say *"Read SETUP.md and set
-GDWorkbench up on this computer"*. By hand: `node tools/setup.js`, then `node tools/serve.js`. The main levels, GD's
+GDWorkbench up on this computer"*. By hand: `node tools/setup.js`, `node tools/rebuild_local.js --quick`, then `node tools/serve.js`. The main levels, GD's
 art and songs come from your own game; nothing of RobTop's is in this repo.
 
 ## Try it
