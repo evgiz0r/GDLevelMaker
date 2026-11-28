@@ -571,6 +571,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   `levelmap.js <level> --pieces <out>` draws a bracket per piece on the level map (where pieces join).
 - **Feel per section (FEEL.md): `tools/feel.js <song> [--tier T] [--plan out.plan.json --theme kit]`** -- speed portal, clicks a second, beat-matching (brickpick `hitWeight`), shape and look per section from the song (drops faster / denser / on the hits, breaks calmer, speed-ups of the music played faster), held in a difficulty budget, neighbours never twins; planbuild reads `section.feel`. The mains measured: `tools/feelstudy.js` -> knowledge/feel_ref.json. Test `node tests/feel.js`.
 - **`tools/songplan.js <song> [--to s]` -- a level's section plan from its song**: cut at the song's transitions (tools/sections.js), a mode per section by its type (break / drop / entry / groove), rests, one upside-down section, cube under ~50% (GDLM 44 v9).
+- **`tools/skippress.js <level> [...]` -- presses you can leave out** (Evgeni 2026-11-28: "if you can just not click and it passes you to the next clicks then thats a skip"): each press dropped (and a flip pair), SKIP when the level still clears; score.js gate "skips" (WARN).
 - **`tools/outside.js <level.gdlvl>` -- a secret way around the structures** (Evgeni 2026-11-28: "be careful for secret ways and skipping the structures (in wave for example)"): the saved route above or below every corridor around it for 0.4 s+; `outsideMap(map, route)` the same on a section map, which typebuild scores seeds down by; test `node tests/outside.js`.
 - **`tools/gencheck.js [type ...] [--seeds 8] [--write]`** -- the AI's own critic of the section generators (Evgeni 2026-11-28: "catch those stuff somehow by the AI, not just by me"): each type over many seeds, its planned presses replayed in real physics -> no plan at all, dies, lazy (clears with no press / held all the way), slideable (most of it slid), low (hugs the ground in a tall piece), unforced clicks or flip pairs, tight windows, sliding, route outside the structures, drawn path vs real, an ending by a hazard; -> knowledge/gencheck.json. Run after every generator change.
 - **`tools/genrating.js` -- Evgeni's 0-10 rating of each section generator** (2026-11-28: "if something is very low it should be used very rarely"): sliders under the catalogue's 🎲 generator (db `genrating`); before a build copy them in (ArtifactData `list` genrating -> a file -> `node tools/genrating.js set <file>` -> knowledge/gen_ratings.json); typebuild picks types by (score/10)^2, unrated = 5, never a hard ban.
@@ -673,6 +674,8 @@ Confirmed:
   release by a tick, turned portals touch by their turned box, a -53 degree teleport moves the full key 54, a ship slides a
   ceiling slope and is launched off its low end, ship -> UFO keeps a quarter of vy. PHYSICS.md "The user's ToE / ToE2 /
   Hexagon Force / Deadlocked runs".
+- A cube falling past a rising slope's foot (feet more than 10 under the foot's level) is not caught by the slope: it hits
+  the block under it (Evgeni's auto hellgate probe logs, 2026-11-28; PHYSICS.md "A cube falling past a slope's foot").
 - Flipping gravity halves vertical speed (blue orb and ceiling blue pad in the recording move at
   half the decompile's velocity). The decompile's ringJump alone does not show this.
 
