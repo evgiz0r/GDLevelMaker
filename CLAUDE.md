@@ -40,6 +40,13 @@ not after it:
   your last round). A new lesson goes in as one line of the checklist in the same commit, and as a
   `make.js`/`score.js` check where possible -- code beats docs. `tools/wip.js` stamps each note
   with the checklist commit it was built against.
+- **Every note he gives also asks: why didn't the AI catch it?** (Evgeni, 2026-11-28: "anything i mention needs to also be
+  thought in whether the judge/solver/whoever could have caught the same (bad view, wrong gameplay, skipped stuff, skipped
+  gameplay ...)"; and "i want to be able and catch those stuff somehow by the AI, not just by me".) For each note, name
+  the check that should have flagged it (judge.js, score.js gates, the solver's secret-way hunt, `tools/gencheck.js` for the
+  section generators, outside.js, the picture checks) and add it or fix its threshold in the same change, then run it on
+  what exists. Reply with which check now catches it and what else it found. A note no tool can catch yet goes in
+  `knowledge/checklist.md` as "not caught by a tool yet: <what>", so the gap is visible.
 - **Every note from the user is a soft rule, not a spot fix.** (The user, 2026-11-23: "i obviously
   want each fix to be somewhat a soft rule. and reapplied across the level and anything in the
   future.") When the user marks one jump, orb or patch, name the family it belongs to (e.g. "a
@@ -562,6 +569,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **Feel per section (FEEL.md): `tools/feel.js <song> [--tier T] [--plan out.plan.json --theme kit]`** -- speed portal, clicks a second, beat-matching (brickpick `hitWeight`), shape and look per section from the song (drops faster / denser / on the hits, breaks calmer, speed-ups of the music played faster), held in a difficulty budget, neighbours never twins; planbuild reads `section.feel`. The mains measured: `tools/feelstudy.js` -> knowledge/feel_ref.json. Test `node tests/feel.js`.
 - **`tools/songplan.js <song> [--to s]` -- a level's section plan from its song**: cut at the song's transitions (tools/sections.js), a mode per section by its type (break / drop / entry / groove), rests, one upside-down section, cube under ~50% (GDLM 44 v9).
 - **`tools/outside.js <level.gdlvl>` -- a secret way around the structures** (Evgeni 2026-11-28: "be careful for secret ways and skipping the structures (in wave for example)"): the saved route above or below every corridor around it for 0.4 s+; `outsideMap(map, route)` the same on a section map, which typebuild scores seeds down by; test `node tests/outside.js`.
+- **`tools/gencheck.js [type ...] [--seeds 8] [--write]`** -- the AI's own critic of the section generators (Evgeni 2026-11-28: "catch those stuff somehow by the AI, not just by me"): each type over many seeds, its planned presses replayed in real physics -> dies, lazy (clears with no press / held all the way), unforced clicks or flip pairs, tight windows, sliding, route outside the structures, drawn path vs real, an ending by a hazard; -> knowledge/gencheck.json. Run after every generator change.
 - **`tools/genrating.js` -- Evgeni's 0-10 rating of each section generator** (2026-11-28: "if something is very low it should be used very rarely"): sliders under the catalogue's 🎲 generator (db `genrating`); before a build copy them in (ArtifactData `list` genrating -> a file -> `node tools/genrating.js set <file>` -> knowledge/gen_ratings.json); typebuild picks types by (score/10)^2, unrated = 5, never a hard ban.
 - **`tools/typebuild.js <briefs/NN.types.json> --run` -- a level from SECTION TYPES in one command** (no lego): song sections + feel -> a type per section generated fresh (tools/sectiongen.js) and checked alone -> joined with portal walls -> make.js (deco pass with a look per section kind, own sky / backdrop per section, one calm effect each via tools/scenes/typefx.js) -> judge report; BUILDING.md section 0 (GDLM 76).
 - `tools/mapbeats.py` (beat and bar lines over a levelmap.js picture). `tools/hellgate_build.js` -- GDLM 44 v3's builder: song part + local grid -> sections -> brickpick / fly-path -> specs/44_hellgate.json (+ .plan.json). **`tools/planbuild.js <briefs/NN.plan.json>`** -- the same builder with the section plan as data, for any level (GDLM 73 sunny streets; LEGO.md "The same builder for any level").

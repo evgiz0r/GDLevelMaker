@@ -13,6 +13,11 @@ check in make.js / score.js, so a level cannot miss it even when nobody reads th
 docs. `tools/wip.js put` adds `[checklist <commit>]` to every wip note, so each version says which
 checklist it was built against.
 
+**Every user note is also a missed check** (Evgeni 2026-11-28): name the tool that should have caught it, make it catch
+it, run it everywhere. Section generators: `node tools/gencheck.js [type] --seeds 8 --write` (plan dies, unforced clicks
+or flip pairs, tight windows, sliding along floor / ceiling, route outside the structures, drawn path vs real, an ending
+near a hazard) -- run it after every generator change.
+
 **Run the loop with one command:** `node tools/loop.js <spec | brief | level> [--look] [--render]
 [--session <name> --note "..."]` (make -> every score.js gate -> pictures -> wip, stops at the first
 failure, prints an ETA first and waits while the PC is busy). A level is ready for the user when it says
