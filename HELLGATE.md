@@ -54,6 +54,15 @@ slot keeps the uploaded version until he says to update it.
   big hit): the doors slam shut over the player, a hot seam, one sky flash, the stage thuds -> the gate dims into black, the
   quiet sign. Move / rotate / alpha / colour only, all locked to the player's x (move 58) so the stage stays on the screen;
   603 objects, 351 triggers, 61 groups. Test: `node tests/hellgate_ending.js`.
+  **v3, the story and the background** (Evgeni on v2: "a bit tame still. some more things on the background. a bit more
+  objects doing things. still a lot of dead space ... no story yet, for the finale"): a demon (tools/artlab.js demonObjects,
+  the art lab's hand-built head) wakes in the doorway behind the rune seal (eyes k 16, rises to k 22, roars on 3 bars, claws
+  grip the arch k 24, surges in D), two chains drop in and drag the doors shut on it; at the slam its claws are knocked back,
+  sparks burst from the seam, the arch sheds stones; its eyes glow once through the seam, ash falls. Background all the way:
+  a two-row burning city (windows flicker on the notes), a lava horizon that heats with the song, a blood moon rising, smoke
+  drifting, meteors on the strongest notes, souls of the city sucked into the gate on the notes of C. 1813 objects, 1254
+  triggers. Lesson: a busy backdrop must stay low and dark (city under ~110 units, near row under ~65) or the gate's
+  silhouette is lost; 1293 glows draw as squares in the art-free viewer, so round things use 497 disks.
   **v2, the energy pass** (Evgeni on v1's video: "nice start. its a bit too tame, it has to be much more energetic"): the
   pillars one a beat with an overshoot, stones spin in faster, an ember on every note from 0.45 up (not only beats), the ring
   turns 3 times with a rune on every note and kicks outward on every beat, the stage thumps on every beat (bigger on bars),

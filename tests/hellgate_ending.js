@@ -20,7 +20,7 @@ const from = r.measures.songFrom;
 const doors = r.objects.filter(o => o.id === 901 && Math.abs(+o.props[28]) === 150 && o.props[30] === "11");
 assert.strictEqual(doors.length, 2, "two door moves");
 for (const d of doors) assert.ok(Math.abs(tAt(d.x) + +d.props[10] + from - HE.SLAM) < 0.02, "a door does not shut on the last hit");
-const lands = r.objects.filter(o => o.id === 901 && o.props[30] === "11" && Math.abs(+o.props[28]) !== 150);
+const lands = r.objects.filter(o => o.id === 901 && o.props[30] === "11" && +o.props[10] === 0.26);   // the stones fly 0.26 s (meteors, souls, debris use ease 11 too)
 assert.strictEqual(lands.length, 11, "eleven arch stones fly in");
 for (const m of lands) { const s = tAt(m.x) + +m.props[10] + from, k = (s - HE.beatS(0)) / (HE.beatS(1) - HE.beatS(0)); assert.ok(Math.abs(k - Math.round(k)) < 0.05, `a stone lands off the beat (${s.toFixed(3)} s)`); }
 console.log(`ok: ${r.measures.objects} objects, ${r.measures.triggers} triggers, doors shut on ${HE.SLAM} s, 11 stones on beats`);
