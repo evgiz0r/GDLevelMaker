@@ -34,6 +34,26 @@ ok(b.jumps >= 2, `with the button still held it jumps again off the ceiling (${b
 const c = ceilingRun(true, true);
 ok(c.flipAt && c.jumps === 1, `with 1813 (no auto jump) armed too, the held button is dropped: no jump off the ceiling (${c.jumps} jump)`);
 
+// the H block (1859, UNCHECKED in the game): the same low ceiling, the head bumps it instead of dying
+{ const objs = []; for (let x = 105; x < 600; x += 30) objs.push({ id: 1, x, y: 75, props: {} });
+  objs.push({ id: 1, x: 1200, y: 300, props: {} }, { id: 1859, x: 105, y: 15, props: { "128": "3", "129": "3" } });
+  const w = GD.makeWorld(objs, "kA4,0"), s = GD.startState(w);
+  for (let t = 0; t < 200 && !s.dead; t++) GD.step(w, s, t === 50 ? PRESS : NONE);
+  ok(!s.dead, `with the H block the cube's head bumps the ceiling and it lives (${s.dead ? s.why : "alive"})`); }
+
+// the D block (1755, UNCHECKED in the game): a wave sliding along a block top dies off its end; with a D block there it lives
+function waveEdge(withD) {
+  const objs = [{ id: 660, x: 15, y: 15, props: {} }];                          // wave portal
+  for (let x = 75; x <= 255; x += 30) objs.push({ id: 1, x, y: 45, props: {} });     // a ledge, top y 60, ends at x 270
+  objs.push({ id: 1, x: 1500, y: 300, props: {} });
+  if (withD) objs.push({ id: 1755, x: 270, y: 75, props: { "128": "3", "129": "2" } });
+  const w = GD.makeWorld(objs, "kA4,0"), s = GD.startState(w);
+  for (let t = 0; t < 300 && !s.dead; t++) GD.step(w, s, t < 50 ? HOLD : NONE);
+  return s; }
+{ const a = waveEdge(false), b = waveEdge(true);
+  ok(a.dead && a.why === "block edge", `a wave sliding off a ledge's end dies (${a.dead ? a.why : "alive"})`);
+  ok(!(b.dead && b.why === "block edge"), `with a D block at the end it slides off and lives (${b.dead ? b.why : "alive"})`); }
+
 // time warp: 0.2 from x 300, back to 1 at x 600
 {
   const objs = [{ id: 1, x: 2000, y: 300, props: {} },

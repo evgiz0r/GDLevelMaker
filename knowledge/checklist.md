@@ -31,6 +31,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Fly corridors are smooth: no one-block stair steps in a ship or wave wall** (2026-11-25: GDLM 44's ship died in the real
   game at a stepped roof's corner where our sim passed, PHYSICS.md "probe mod"). Build them with `fly-path` (45-degree slopes
   on both walls), not `ship-tunnel`; the margin our sim gives at a block corner is not to be trusted.
+- [ ] **A wave never slides off an end or into a slope without a D block** (Evgeni 2026-11-28: "the merges between sections
+  still bit wierd, probably worst on the wave as it just crashes the grounds"): joins put D cells at every wave portal by
+  themselves (lib/scenejoin.js); inside a wave section use a seam block or a D cell. The table of where each mode can
+  slide: knowledge/section_types.md "Where each mode can slide". Checked by the solve (the sim kills those slides).
 - [ ] **Brick joins get 3+ flat blocks, and a brick whose own check found a prejump is not used** (2026-11-25, GDLM 44 v3: 1-2 block joins made 5 prejumps and a tap 183 ms after a gravity portal). `tools/brickpick.js` enforces it; score.js "prejumps" / "fairness" check it.
 - [ ] **Height carries over between sections, never resets** (Evgeni 2026-11-26: "its not that each section just 5, its
   that between sections we always reset"; "we could make a level that just goes up in y by the sections"). Each section

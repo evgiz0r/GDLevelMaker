@@ -27,8 +27,12 @@ function specOf(z) {
   const objects = [];
   const put = (map, dc) => { for (const [kind, c, r, ex] of sampleOf(map)) objects.push(ex ? [kind, c + dc, r, ex] : [kind, c + dc, r]); };
   // the joins as text maps too, so sampleOf turns their tiles into the same objects
-  const mapOf = (tiles, n) => { const g = Array.from({ length: h }, () => Array(n).fill(".")); for (const q of tiles) if (q.r < h) g[h - 1 - q.r][q.c] = q.t; return g.map(l => l.join("")); };
+  const mapOf = (tiles, n) => { const g = Array.from({ length: h }, () => Array(n).fill(".")); for (const q of tiles) if (q.r < h && q.c >= 0 && q.c < n) g[h - 1 - q.r][q.c] = q.t; return g.map(l => l.join("")); };
   put(mapOf(a.tiles, a.n), RUN); put(z.map, x0); put(mapOf(b.tiles, b.n), x0 + w);
+  // join tiles that lie on the section itself (the wave's slide-safe D cells, lib/scenejoin.js): in its empty cells
+  const on = [...a.tiles.filter(q => q.c >= a.n).map(q => ({ t: q.t, c: q.c - a.n, r: q.r })), ...b.tiles.filter(q => q.c < 0).map(q => ({ t: q.t, c: w + q.c, r: q.r }))]
+    .filter(q => q.c >= 0 && q.c < w && q.r < h && z.map[h - 1 - q.r][q.c] === ".");
+  if (on.length) put(mapOf(on, w).map(l => l.replace(/[^D]/g, ".")), x0);
   const end = x0 + w + b.n;
   if (z.mode !== "cube") objects.unshift(a.portal ? [PORTAL[z.mode], RUN + a.portal.c, a.portal.r] : [PORTAL[z.mode], RUN - 3, 1]);
   return { spec: { name: "GDLM layout check " + z.key, desc: "Layout check", objects, speed: z.speedName || "1x", endCol: end + 12, structures: false, outro: false },
