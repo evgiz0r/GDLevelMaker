@@ -129,8 +129,12 @@ window.initDesigns = async function (root) {
   const putRev = m => DB.collection("designmarks").doc(m.mid + "-" + Date.now().toString(36)).set(Object.assign({}, m, { at: new Date().toISOString() }));
   const latest = docs => { const by = new Map(); for (const d of docs) { if (!d || !d.mid) continue; const o = by.get(d.mid); if (!o || String(d.at) >= String(o.at)) by.set(d.mid, d); }
     return [...by.values()].filter(d => !d.deleted); };
+  // SENT STAMPS by mark id (Evgeni 2026-11-28: "it says sending 4, but it drops only to 3 new"): the first mark's save
+  // brings a db snapshot that REPLACES the MARKS list, so the stamps set on the old objects were lost for every mark after
+  // the first and they were sent again and again. The stamp now lives here and is put on whatever object is current.
+  const SENTM = {};
   async function saveMark(mid) {
-    const m = MARKS.find(z => z.mid === mid); if (!m) return;
+    const m = MARKS.find(z => z.mid === mid); if (!m) return; if (SENTM[mid]) Object.assign(m, SENTM[mid]);
     if (PEND[mid] !== undefined) m.note = PEND[mid].trim();
     m.at = new Date().toISOString(); const want = m.note;
     const st = root.querySelector(`[data-m="${mid}"] .mst`);
@@ -513,7 +517,11 @@ window.initDesigns = async function (root) {
     for (const c of pr) { if (!(c >= 0 && c <= W)) continue; const y = yAt(c);
       out.push(y != null ? `<circle cx="${c.toFixed(2)}" cy="${(H - y - 0.5).toFixed(2)}" r="0.26" fill="#ffe36b" />` : `<line x1="${c.toFixed(2)}" y1="0" x2="${c.toFixed(2)}" y2="${H}" stroke="#ffe36b" stroke-opacity="0.55" stroke-dasharray="0.3 0.3" style="stroke-width:1.5px;vector-effect:non-scaling-stroke" />`); }
     return `<g class="plan" style="pointer-events:none">${out.join("")}</g>`; };
-  const PLANTXT = g => { if (!g) return ""; const n = (g.presses || []).length;
+  // A FAILED GENERATION SAYS SO (Evgeni 2026-11-28, opencube: "it dies, if the generation failed, it should say it (the
+  // path should reach till the end). any failing generation of physics is obviously a bug"): a planned path that stops
+  // short of the piece's end is shown in red as a failed generation, not as a plan
+  const PLANTXT = g => { if (!g) return ""; const n = (g.presses || []).length, W = g.map ? g.map[0].length : 0, end = g.path && g.path.length ? g.path[g.path.length - 1][0] : null;
+    if (end != null && W && end < W - 1.5) return `<span style="color:#ff8a8a">❌ generation failed: the planned path stops at col ${end.toFixed(0)} of ${W} (a generator bug: tools/gencheck.js lists these as "short")</span> · `;
     return g.path ? `<span style="color:#ffb35c">planned path · ${n} presses (solved by design)</span> · ` : n ? `<span style="color:#ffe36b">${n} planned presses (ticks; this type has no drawn path yet)</span> · ` : `<span style="color:#999">no plan: an older shape-first type</span> · `; };
   // ⭐ HOW GOOD IS EACH GENERATOR (Evgeni 2026-11-28: "give me some controller on each of the generators, ill put a scale of
   // how good i think it is. if something is very low it should be used very rarely"): a 0-10 slider per type, saved as it
@@ -607,8 +615,12 @@ window.initDesigns = async function (root) {
       // 1.5 s after a refusal and the green tap was refused again, Evgeni 2026-11-27: "that green msg doesnt work still")
       lastKey = Date.now(); cue(); return false; }
     LAST = new Date().toISOString(); try { if (DB) await DB.collection("designsend").doc("s-" + Date.now().toString(36)).set({ at: LAST }); } catch (x) {}
-    for (const q of nts) NST[q[0]] = "sent";
-    for (const m of ms) { PEND[m.mid] = noteOf(m); m.sentNote = noteOf(m).trim(); m.sent = new Date().toISOString(); await saveMark(m.mid); }
+    // a sent note keeps its sent text (sentNote), so it reads "sent" after a reload, not "saved, not read" (Evgeni
+    // 2026-11-28: "even when tab turns green its still not sent to claude ... its just saved")
+    for (const q of nts) { const n = NOTES[q[0]]; if (n) { n.sentNote = (n.note || "").trim(); await saveNote(q[0]); } NST[q[0]] = "sent ✓"; }
+    const now = new Date().toISOString();
+    for (const m of ms) { PEND[m.mid] = noteOf(m); SENTM[m.mid] = { sentNote: noteOf(m).trim(), sent: now }; Object.assign(m, SENTM[m.mid]); }
+    for (const m of ms) await saveMark(m.mid);
     say("sent " + n + " to Claude " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })); render(); return true;
   }
   // the top 📨 beside ⟳ (tools/snippets/refresh.html calls window.rfBeforeReload before it reloads)
@@ -927,6 +939,7 @@ window.initDesigns = async function (root) {
     if (DB) DB.collection("designmarks").onSnapshot(snap => {
       const local = MARKS.filter(m => MST[m.mid] !== "saved" && !m.seen);
       MARKS = latest(snap.docs.map(d => JSON.parse(JSON.stringify(d.data()))));
+      for (const m of MARKS) if (SENTM[m.mid] && !(m.sent >= SENTM[m.mid].sent)) Object.assign(m, SENTM[m.mid]);
       for (const m of local) if (!MARKS.some(z => z.mid === m.mid)) MARKS.push(m);
       if (!root.contains(document.activeElement) || !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) render();
     }, () => {});
