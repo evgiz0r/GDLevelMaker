@@ -464,7 +464,9 @@ pad; a ball press on a surface also a hidden blue pad; a ship press also pads th
 | zoom out | 28 -> 28 pads | 12 s |
 | Hellgate theme | 36 -> 35 pads, 2 portals | 18 s |
 Open: full levels with ship stretches -- GDLM 76 stops at 19.1 s (ship), GDLM 78 at 13.7 s (ship -> wave portal entered on a
-release); a ship flipped by a portal rises 0.25 a tick, held 0.39, and pads overshoot. Test: `node tests/autoclose.js`.
+release); a ship flipped by a portal rises 0.25 a tick, held 0.39, and pads overshoot. GDLM 77 (probe route) stops at 20.3 s on a
+robot press (a held robot jump has no pad twin); its probe-mod playback (`probe.js play`) already presses it for him in the game. The theme layout board (gdlm_design_themes, 140 presses) stops at 17.2 s on a cube jump no pad
+reproduces (18 min of search). Test: `node tests/autoclose.js`.
 
 ## GDLM 75 held together: a short auto with deco and connected structures (tools/autodeco.js, 2026-11-27)
 
