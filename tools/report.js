@@ -25,7 +25,7 @@
 if (require.main === module) require("./heavy.js").claim();   // fairness replays the route: one heavy-job slot
 "use strict";
 const fs = require("fs"), path = require("path");
-const RANK = { "uneven piece": -4, "too much cube": -3, "no reverse": -3, "walked portal": -2, "abrupt switch": -2, "ground start": -2, "no rests": -2, "unseen roof": -1, "pointless orb": 0, "few clicks": 1, "gap": 2, "long corridor": 3, "same corridor": 4, "no variety": 5, "too easy": 6 };
+const RANK = { "uneven piece": -4, "too much cube": -3, "no reverse": -3, "walked portal": -2, "flat transition": -2, "abrupt switch": -2, "ground start": -2, "no rests": -2, "unseen roof": -1, "pointless orb": 0, "few clicks": 1, "gap": 2, "long corridor": 3, "same corridor": 4, "no variety": 5, "too easy": 6 };
 
 function report(file, opt = {}) {
   const { readGdlvl, GD } = require("./io.js"), S = require("./solutions.js"), J = require("./judge.js");
@@ -47,6 +47,12 @@ function report(file, opt = {}) {
   try { const cp = require("child_process");
     const t = JSON.parse(cp.execFileSync(process.execPath, [path.join(__dirname, "taste.js"), "score", file, "--json"], { encoding: "utf8", windowsHide: true, env: Object.assign({}, process.env, { GDLM_HEAVY_HELD: "1" }), maxBuffer: 1 << 24 }).trim().split("\n").pop());
     out.taste = { score: t.score }; } catch (e) { out.taste = { error: "taste.js failed" }; }
+  // transition moments (Evgeni 2026-11-28: a strong beat at a transition must make something happen): tools/moments.js
+  try { const song = ((L.rec.fields || []).find(f => f.key === "k45") || {}).value, from = +((/kA13,([\d.]+)/.exec(L.level.header) || [0, 0])[1]);
+    if (song) { const M = require("./moments.js"), r = M.check({ objects: L.level.objects, path: run.path, music: require("./sections.js").load(song).music, from });
+      out.moments = { strong: r.length, flat: r.filter(m => !m.ok).length };
+      for (const m of r) if (!m.ok) j.notes.push({ kind: "flat transition", t: m.t, x: run.path[Math.min(run.path.length - 1, Math.round(m.t * 240))].x / 30,
+        note: `a strong beat (${m.kind} ${m.strength}) at a section change and nothing happens` }); } } catch (e) { out.moments = { error: e.message.slice(0, 80) }; }
   // layout sub-scores from the judge
   const n = k => j.notes.filter(x => x.kind === k), cl = v => Math.max(0, Math.min(10, +v.toFixed(1)));
   const cps = j.sections.filter(s => s.dur >= 2).map(s => s.clicks / s.dur), mean = cps.reduce((a, b) => a + b, 0) / Math.max(1, cps.length);
@@ -61,7 +67,7 @@ function report(file, opt = {}) {
   const st = j.stats || {};
   const sub = { balance: cl(10 * (1 - Math.min(1, (cv + (st.cpsCv || 0) + 0.8 * (st.winSd || 0)) / 2)) - Math.min(3, 0.75 * n("uneven piece").length)),
     modes: cl(10 - (st.cubeShare > 0.5 ? 25 * (st.cubeShare - 0.5) + 2 : 0) - (n("no reverse").length ? 6 * (1 - Math.min(1, (st.upShare || 0) / 0.15)) + 2 : 0)),
-    transitions: cl(10 - 2 * n("walked portal").length - 1.5 * n("abrupt switch").length - 2 * n("ground start").length),
+    transitions: cl(10 - 2 * n("walked portal").length - 1.5 * n("abrupt switch").length - 2 * n("ground start").length - 1.5 * n("flat transition").length),
     rests: cl(10 * Math.min(1, (st.restsPerMin || 0) / 8)), flow: cl(10 - 3 * gapS), variety: cl(10 - 2.5 * (n("no variety").length + n("same corridor").length)),
     pacing: cl(10 - 2 * n("long corridor").length), clarity: cl(10 - 3 * n("pointless orb").length - 3 * n("unseen roof").length), ending: n("flat ending").length ? 4 : 10,
     height: heightScore(require("./heightspread.js").spreadOf(run.path)) };

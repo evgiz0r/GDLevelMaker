@@ -268,6 +268,60 @@ FX.zoomPunch = (c, o) => {
   return out;
 };
 
+// ------------------------------------------------------------------ moments: one event on one strong beat at a transition
+// Evgeni (2026-11-28): "we have many moments in the game with really strong beat. if its in a transition, something should
+// happen ... today those feel too simple or not special at all". A moment is planned by the orchestrator (tools/typebuild.js
+// `moments`, tools/moments.js) at the beat's time t; each is deco only (move / alpha / zoom / camera offset, no pulse, no
+// flash) and has knobs: {t, y (player's height there), hue, size (0.5-1.5), dir ("down" | "up")}.
+const ease = (x, g, dx, dy, secs, e) => K.trig(901, x, { 51: String(g), 28: r3(dx), 29: r3(dy), 10: r3(secs), 30: String(e), 85: "2" });
+doc.gateShut = "MOMENT, MOVE: a heavy gate slams shut just behind the player on the beat (bars drop from the sky, a sill rises), the old part is closed off: {t, y, size}";
+FX.gateShut = (c, o) => {
+  const g = c.group(), sill = c.group(), x = c.xAt(o.t) - 95, y = o.y ?? c.yAt(o.t), k = o.size ?? 1, out = [];
+  const ch = c.channel(c.pal.deep), chE = c.channel(c.pal.light, { opacity: 0.8 }), drop = 420 * k, H = 300 * k;
+  for (let i = 0; i < 3; i++) {   // three bars and their bright edges, from above the screen down to the player's height
+    const bx = x - 50 * k + i * 50 * k;
+    out.push(D(211, bx, y + H / 2 + drop - 10, { ch, z: "T1", sx: 0.9 * k, sy: H / 30, groups: [g] }),
+      D(211, bx + 13 * k, y + H / 2 + drop - 10, { ch: chE, z: "T1", sx: 0.12 * k, sy: H / 30, groups: [g] }));
+  }
+  out.push(D(211, x, y - 60 - 120 * k, { ch, z: "T1", sx: 6 * k, sy: 2 * k, groups: [sill] }));
+  const x0 = c.xAt(o.t);
+  out.push(ease(x0, g, 0, -drop, 0.18, 2), ease(c.xAt(o.t + 0.2), g, 0, 14 * k, 0.08, 0), ease(c.xAt(o.t + 0.3), g, 0, -14 * k, 0.12, 0),
+    ease(x0, sill, 0, 120 * k, 0.25, 3));
+  return out;
+};
+doc.riseReveal = "MOMENT, MOVE + ALPHA: the next part's skyline rises out of the ground ahead on the beat, tallest in the middle, one after another: {t, y, size, hue}";
+FX.riseReveal = (c, o) => {
+  const x = c.xAt(o.t), k = o.size ?? 1, n = 7, out = [], ch = c.channel(c.pal.deep), chL = c.channel(c.pal.soft, { opacity: 0.7 });
+  for (let i = 0; i < n; i++) {
+    const g = c.hideAtStart(c.group()), h = (110 + 90 * Math.sin(Math.PI * (i + 0.5) / n)) * k, bx = x + 150 + i * 75 * k, lift = 260 * k;
+    out.push(D(211, bx, h / 2 - lift, { ch, z: "B3", sx: 1.9 * k, sy: h / 30, groups: [g] }),
+      D(211, bx, h - lift - 4, { ch: chL, z: "B3", sx: 1.9 * k, sy: 0.15, groups: [g] }));
+    const t = o.t + i * 0.045;
+    out.push(T.alpha(c.xAt(t), g, 1, 0.1), ease(c.xAt(t), g, 0, lift, 0.5, 3));
+  }
+  return out;
+};
+doc.cameraBreath = "MOMENT, ZOOM + CAMERA OFFSET: on the beat the camera pulls back and lifts, then settles over two seconds (a breath, not a punch): {t, size, dir}";
+FX.cameraBreath = (c, o) => {
+  const k = o.size ?? 1, x = c.xAt(o.t), up = (o.dir === "down" ? -1 : 1) * 45 * k;
+  return [T.zoom(x, 1 - 0.16 * k, 0.35), T.zoom(c.xAt(o.t + 0.5), 1, 1.8),
+    K.trig(1916, x, { 28: "0", 29: r3(up), 10: "0.35", 30: "3" }), K.trig(1916, c.xAt(o.t + 0.5), { 28: "0", 29: "0", 10: "1.8", 30: "1" })];
+};
+doc.slabsFall = "MOMENT, MOVE + ROTATE: heavy slabs fall from the top of the screen ahead and land on the ground together on the beat, tilted, with a small bounce: {t, size}";
+FX.slabsFall = (c, o) => {
+  const x = c.xAt(o.t), k = o.size ?? 1, out = [], ch = c.channel(c.pal.deep), chE = c.channel(c.pal.soft, { opacity: 0.8 }), n = 5;
+  for (let i = 0; i < n; i++) {
+    const g = c.hideAtStart(c.group()), bx = x + 200 + i * 70 * k, h = (40 + (i * 37) % 50) * k, fall = 420, land = h / 2 - 20, rot = ((i * 53) % 30) - 15;
+    out.push(D(211, bx, land + fall, { ch, z: "B2", sx: 1.6 * k, sy: h / 30, groups: [g] }), D(211, bx, land + fall + h / 2 - 3, { ch: chE, z: "B2", sx: 1.6 * k, sy: 0.12, groups: [g] }));
+    const t0 = o.t - 0.32;   // they fall for 0.32 s and land on the beat
+    out.push(T.alpha(c.xAt(t0), g, 1, 0.05), ease(c.xAt(t0), g, 0, -fall, 0.32, 2), T.rotate(c.xAt(o.t), g, rot, 0.15),
+      ease(c.xAt(o.t), g, 0, 10, 0.07, 0), ease(c.xAt(o.t + 0.08), g, 0, -10, 0.1, 0));
+  }
+  return out;
+};
+doc.skyTurn = "MOMENT, COLOUR: the sky and the ground turn to the next part's colours exactly on the beat (one change, it does not come back): {t, bg, ground}";
+FX.skyTurn = (c, o) => { const x = c.xAt(o.t); return [o.bg && T.colour(x, 1000, o.bg, 0.08), o.ground && T.colour(x, 1001, o.ground, 0.08)].filter(Boolean); };
+
 module.exports = Object.assign({ context, T, E, palette, doc }, FX);
 
 if (require.main === module) for (const [k, v] of Object.entries(doc)) console.log(`${k.padEnd(13)} ${v}`);
