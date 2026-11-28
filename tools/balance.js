@@ -132,7 +132,7 @@ function balance(name, actions, meta) {
     return { lo, hi: hi > 1e8 ? null : hi, inputs: g.length, cost: +g.reduce((s, a) => s + a.cost, 0).toFixed(3) };
   });
   const { fly: _fly, lump: _lump, ...metaOut } = meta;
-  return { name, ...metaOut, score: +total.toFixed(3), attempts: Math.round(10 ** total), label: DF.difficultyLabel(total),
+  return { name, ...metaOut, score: +total.toFixed(3), attempts: Math.round(10 ** total), label: DF.difficultyLabel(total, true),
     // the open question in lib/difficulty.js settleOf: the score if late-open windows were not counted as forced
     ifOpenExempt: +sum("costIfOpenExempt").toFixed(3), openForced: inputs.filter(a => a.lateOpen && a.settle > 0).length,
     parts: { lapse: +sum("lapse").toFixed(3), timing: +sum("timing").toFixed(3), settle: +sum("settle").toFixed(3) },
