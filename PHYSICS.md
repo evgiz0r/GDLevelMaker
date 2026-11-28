@@ -127,6 +127,14 @@ not seen in the user's game yet.
   rising floor slope; the sim had let it ride up the slope (its zigzag windows of ~500 ms were
   fake). The 67.5 cut is not measured (between 45: slides, and 90: dies). Slope contact for the
   wave now uses its own 5-wide box, not the cube's 15.
+- OPEN (2026-11-28, GDLM 78 two moons rising, Evgeni: "the wave doesnt slide like this, it dies for us", with a picture
+  of the wave's flat trail on the floor just after its portals): the saved route takes the ship -> wave portal at block
+  143.5 (2x, just after a normal-gravity portal) falling at vy -6.5, lands on the block row's top (y 35) and slides 0.28 s
+  to 147.5 before it presses up; the sim lives, the game kills it. Four more slides of 0.2-0.5 s in that route (161.7,
+  175.9, 192.5, 205.2). Not explained: the GDLM 44 recording above shows a wave sliding on a block top for 3 frames.
+  Candidates: landing on a top while falling from another mode, at 2x, a slide over 3 frames, the floor being a block
+  row rather than the ground. Until a probe log settles it, the generators plan no wave slides (tools/sectiongen.js
+  wavePlan turns a row before any floor or roof) and joins put D blocks at wave portals (lib/scenejoin.js).
 - Design consequence: a wave portal right at a block's end that a cube can land on is a trap --
   the habit (enter the wave without holding) slides into the corner. `tools/press_window.js`
   measured GDLM 44's entrance: press-and-hold from 8 ticks before the portal to 13 after (92 ms)
