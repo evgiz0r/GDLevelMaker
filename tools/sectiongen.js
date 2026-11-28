@@ -110,11 +110,13 @@ const tour = (R, lo, hi) => h => { const m = (lo + hi) / 2, span = hi - lo;
 // 2, and a band portal is put only when it moves the band toward it. A new target when it is reached. Its own random
 // stream, and only in tall maps, so default-height layouts stay as they were. climber(...).drift(O) = -1, 0 or +1;
 // .step(side, base, drift, minAway) = the row step of a flip to `side` (-1 = up to a ceiling, 1 = down to a floor).
+// a flip's row step in a band of BT rows: 3-6, 4-5 most often, never more than the band leaves (BT - 3)
+function flipStep(R, BT) { return Math.min(Math.max(2, BT - 3), R.pick([3, 4, 4, 5, 5, 5, 6])); }
 function climber(seed, H, BT, tall) { if (!tall) return { drift: () => 0, step: (side, base) => base };
   const Rt = rng(((seed ?? 1) * 104729 + 71) >>> 0), lo = Math.floor(BT / 2), hi = H - 1 - BT + Math.floor(BT / 2), next = tour(Rt, lo, hi);
   let T = next(lo);
   return { drift: O => { const m = O + Math.floor(BT / 2); if (Math.abs(T - m) < 2) { T = next(m); if (Math.abs(T - m) < 2) return 0; } return Math.sign(T - m); },
-    step: (side, base, dr, minAway = 2) => !dr ? base : (side < 0) === (dr > 0) ? Rt.int(3, 4) : minAway }; }
+    step: (side, base, dr, minAway = 2) => !dr ? base : (side < 0) === (dr > 0) ? Math.max(base, Rt.int(4, 6)) : Math.min(base, Math.max(minAway, 3)) }; }
 // BAND MOVERS for a flying corridor taller than the mode's 10-row band (Evgeni 2026-11-27: "even if i make height x2 some
 // of the modes stay on their height like hardcoded"; "swing/ship/ufo portals in the middle of the gameplay recenter the
 // screen. people put invisible ones to move further in the screens"): a hidden portal of the mode (`ch`: H ship, U ufo,
@@ -840,7 +842,9 @@ function rollers(o, { mode, band, travel, portals = 0, overlap = null }) { const
     // of movement is below the half of the full length, just to have less updown from ground to floor"), and the play
     // height wandering over the whole band both ways ("the height of the gameplay is too similar ... more balanced across
     // the y axis, in both directions"): pieces in the middle, a floor or ceiling mass only at the band's edges
-    const p = S[S.length - 1], side = -p.side, step = CL.step(side, R.int(2, o.maxStep ?? 4), dr);
+    // LONGER FLIPS (Evgeni 2026-11-28: "some of the jumps are short distances ... while we could extend them in theory
+    // more ... not some, like all"): 3-6 rows, 4-5 most often (a distribution, not a cap; the band's edges still clamp it)
+    const p = S[S.length - 1], side = -p.side, step = CL.step(side, o.maxStep ? R.int(2, o.maxStep) : flipStep(R, BT), dr, 3);
     // a floor-side surface sits low enough to flip up from (row <= BT - 4), a ceiling-side one high enough to drop from
     // and now and then the very edges (Evgeni 2026-11-27: "all our sections should involve the ground/floor at some of the
     // play. even those fully blocked (ball / spider...)"): a stretch rolled on the ground itself (row 0, its spikes taken
@@ -1251,7 +1255,7 @@ GEN["my-mwz7nxue"] = o => { const { R, mix, W, H, G, style, onBeat, entry } = ct
     if (tall && S.length > 1 && q.b - q.a >= 5 && (R.chance(0.6) || dr)) { const abs = q.y + q.O, O2 = clamp(abs - Math.floor(BT / 2), 0, H - 1 - BT), rel = abs - O2;
       if (O2 !== O && (!dr || Math.sign(O2 - O) === dr) && (q.side > 0 ? rel <= BT - 4 : rel >= 3)) { q.mover = { c: q.a + Math.ceil(e) + 1, O: O2, rel }; O = O2; } }
     dr = CL.drift(O);
-    const qy = q.mover ? q.mover.rel : q.y, side = -q.side, step = CL.step(side, R.int(2, 4), dr, 1), edge = R.chance(0.3) || (dr && (side < 0) === (dr > 0));
+    const qy = q.mover ? q.mover.rel : q.y, side = -q.side, step = CL.step(side, flipStep(R, BT), dr, 3), edge = R.chance(0.3) || (dr && (side < 0) === (dr > 0));
     let y = side < 0 ? clamp(qy + step, Math.max(3, qy + 1), edge ? BT - 1 : BT - 2) : clamp(qy - step, edge ? 0 : 1, Math.min(BT - 4, qy - 1));
     // EVERY TAP FORCED (Evgeni 2026-11-28: "the spides does some clicks that are not needed. no hazards are there force
     // this gameplay"): a spider that skips the tap walks off its surface and falls; if the fall still meets the next
