@@ -142,12 +142,16 @@ button:active:not(:disabled),.btn:active,[role=button]:active{transform:translat
 <div class="band"><div class="wrap">
  <div class="tool"><div class="shot"><img src="img/tool_viewer.jpg" alt="The level viewer replaying a ship corridor, with the hold timeline under it"></div>
   <div><h3>See any level play</h3><p>Every level replays in the browser with its clicks. Each press shows its timing window, so you see exactly how tight a spot is.</p><p>Play it yourself with practice checkpoints, on PC or phone.</p></div></div>
+ <div class="tool"><div class="shot"><img src="img/tool_human.jpg" alt="A cube mid-jump with each press's timing window shown under the level and every click marked on the timeline"></div>
+  <div><h3>Solved like a human</h3><p>The solver doesn't play like a bot. It finds the route a person would take: one tap per jump, early jumps off edges, few holds in the wave, no jitter.</p><p>Every press shows its timing window in milliseconds, so the tightest spots are easy to see.</p></div></div>
  <div class="tool"><div class="shot"><img src="img/tool_beats.jpg" alt="Zoomed-out view with numbered beat lines over an orb section"></div>
   <div><h3>Mark it like a playtester</h3><p>Zoom out, turn on the song's beats, tap the level to pin a note or drag to draw on it. Notes go straight to Claude, and every note becomes a rule for all future levels.</p></div></div>
  <div class="tool"><div class="shot"><img src="img/tool_draw.jpg" alt="A freehand zigzag stroke turned into a wave corridor with planned presses"></div>
   <div><h3>Draw it, roughly</h3><p>Sketch a line on the whiteboard and it becomes a playable piece: here a zigzag turned into a wave corridor, with the presses it needs.</p></div></div>
  <div class="tool"><div class="shot"><div class="tabs" id="gtabs"></div><div class="gen" id="gview"></div></div>
   <div><h3>Section generators</h3><p id="gconcept"></p><p>Each type is a concept in code, not a copied layout: any length, any difficulty, on the song's beat. Lime marks are the planned presses.</p></div></div>
+ <div class="tool"><div class="shot"><img src="img/anim_auto.webp" alt="An auto level replaying, with numbered beat lines sliding past"></div>
+  <div><h3>Auto levels on the beat</h3><p>No clicks at all: pads, orbs and portals carry the player through the structures, timed to the song. The beat lines show the rhythm as it plays.</p></div></div>
  <div class="tool"><div class="shot"><img src="img/tool_map.jpg" alt="Level map with the solver's route drawn by game mode"></div>
   <div><h3>The solver's route</h3><p>A physics sim of GD 2.2 plays every level, frame by frame, and draws the route by mode. It flags skips, secret ways around structures and lazy holds.</p><p>Checked against real runs in the game through a small mod.</p></div></div>
  <div class="tool"><div class="shot"><img src="img/tool_balance.jpg" alt="Difficulty breakdown page: score, attempts, and cost of every press"></div>
