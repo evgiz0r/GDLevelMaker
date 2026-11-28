@@ -54,6 +54,13 @@ slot keeps the uploaded version until he says to update it.
   big hit): the doors slam shut over the player, a hot seam, one sky flash, the stage thuds -> the gate dims into black, the
   quiet sign. Move / rotate / alpha / colour only, all locked to the player's x (move 58) so the stage stays on the screen;
   603 objects, 351 triggers, 61 groups. Test: `node tests/hellgate_ending.js`.
+  **v2, the energy pass** (Evgeni on v1's video: "nice start. its a bit too tame, it has to be much more energetic"): the
+  pillars one a beat with an overshoot, stones spin in faster, an ember on every note from 0.45 up (not only beats), the ring
+  turns 3 times with a rune on every note and kicks outward on every beat, the stage thumps on every beat (bigger on bars),
+  zoom punches (1913) on bars and the strongest notes, sky flares on the loud bars, the towers shudder on the strongest
+  notes, the slam shakes the screen with a 1.2 zoom. 1014 objects, 746 triggers. Iterated by video: the private page
+  https://claude.ai/artifact/PZgnLMtAKT25HYYmK9kLc1 (versions in its db `meta/video`, his notes per version in `notes`),
+  rendered on the PC with `tools/video.js` (~40 s a render; the cloud can't get the song).
   Not checked in GD yet: the doors are on T1, which should draw over the player in the game (the viewer always draws the
   player on top); a rotate about a centre that is itself locked to the player; the quiet sign's camera lock (the viewer
   draws the sign unlocked, so it drifts left over the right tower there -- in GD it should stay put right of the tower).

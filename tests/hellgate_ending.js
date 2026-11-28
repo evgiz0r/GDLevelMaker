@@ -1,5 +1,5 @@
 // node tests/hellgate_ending.js  -- Hellgate's ending animation (tools/hellgate_ending.js, HELLGATE.md): the level clears with
-// no press, the show leaves the run unchanged, nothing but deco and trusted triggers (no pulse, no scale), the doors meet on the
+// no press, the show leaves the run unchanged, nothing but deco and trusted triggers (move, alpha, rotate, colour, zoom; no pulse, no scale), the doors meet on the
 // song's last hit and the arch stones land on their beats. ~2 s.
 "use strict";
 const assert = require("assert");
@@ -8,7 +8,7 @@ const HE = require("../tools/hellgate_ending.js");
 const r = HE.build({});
 assert.ok(r.measures.clears, "the ending dies");
 assert.ok(!r.measures.showChangesRun, "the show changes the zero-press run");
-const OK = new Set([901, 1007, 1346, 899]);
+const OK = new Set([901, 1007, 1346, 899, 1913]);   // zoom 1913 since v2 (energy pass); never pulse 1006 or scale 2067
 for (const o of r.objects) {
   const k = (GD.objInfo(o.id) || {}).kind;
   assert.ok(k === "decoration" || o.id === 914 || (k === "trigger" && OK.has(o.id)), `object ${o.id} (${k}) is not deco or a trusted trigger`);

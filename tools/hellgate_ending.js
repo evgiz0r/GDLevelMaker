@@ -65,10 +65,10 @@ function parts(ctx, songT, o = {}) {
   // A. the pillars: two tall towers outside, two that hold the arch, rising 150 units out of the dark
   const RISE = 150;
   const pillars = [
-    { dx: -170, h: 150, w: 26, k: 0 }, { dx: 190, h: 150, w: 26, k: 0 },
-    { dx: -95, h: 86, w: 30, k: 2 }, { dx: 115, h: 86, w: 30, k: 2 },
+    { dx: -170, h: 150, w: 26, k: 0 }, { dx: 190, h: 150, w: 26, k: 1 },
+    { dx: -95, h: 86, w: 30, k: 2 }, { dx: 115, h: 86, w: 30, k: 3 },
   ];
-  const caps = [];
+  const caps = [], pillarGroups = [];
   for (const p of pillars) {
     const gp = hid(g()), x = x0 + p.dx;
     for (let y = 0; y < p.h; y += 30) {              // stacked stones with a lit edge: reads as masonry
@@ -79,21 +79,26 @@ function parts(ctx, songT, o = {}) {
     const gc = hid(g());                             // the fire cap: a glow on top, lit later
     out.push(D(1293, x, p.h + 6 - RISE, { ch: chRim, z: "B1", sx: p.w / 30 * 1.3, sy: 0.5, groups: [gp, gc, ALL] }));
     out.push(D(1764, x, p.h + 4 - RISE, { ch: chEmber, z: "B1", zo: 2, s: 0.9, groups: [gp, gc, ALL] }));
-    caps.push(gc);
+    caps.push(gc); pillarGroups.push(gp);
     const t = beatS(p.k);
-    out.push(FX.T.alpha(xs(t - 0.05), gp, 1, 0.15), FX.T.move(xs(t - 0.05), gp, 0, RISE, 0.4, FX.E.hit));
+    out.push(FX.T.alpha(xs(t - 0.12), gp, 1, 0.08), FX.T.move(xs(t - 0.12), gp, 0, RISE, 0.22, FX.E.pop));   // overshoots a little, lands on the beat
     fades.push(gp);
   }
   caps.forEach((gc, i) => out.push(FX.T.alpha(xs(beatS(4 + i)), gc, 0.9, 0.08)));
-  log.push(`A pillars rise on ${beatS(0).toFixed(2)} / ${beatS(2).toFixed(2)} s, caps light ${beatS(4).toFixed(2)}-${beatS(7).toFixed(2)} s`);
+  log.push(`A pillars rise one a beat ${beatS(0).toFixed(2)}-${beatS(3).toFixed(2)} s, caps light ${beatS(4).toFixed(2)}-${beatS(7).toFixed(2)} s`);
 
   // embers rising through A-C: one on every beat, somewhere in the gate
   let seed = 7; const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  for (let k = 0; k < 28; k++) {
-    const ge = hid(g()), x = x0 - 150 + R() * 320, y = 10 + R() * 60, t = beatS(k);
-    out.push(D(1764, x, y, { ch: chEmber, z: "B3", s: 0.35 + R() * 0.4, groups: [ge, ALL] }));
-    out.push(FX.T.alpha(xs(t), ge, 0.8, 0.05), FX.T.move(xs(t), ge, (R() - 0.5) * 30, 110 + R() * 60, 2.2, FX.E.sineOut),
-      FX.T.alpha(xs(t + 0.9), ge, 0, 1.2));
+  // ENERGY (Evgeni on v1: "a bit too tame, it has to be much more energetic"): an ember bursts up on every note of the song
+  // from 0.55 up (not only the beats), faster, bigger on the strong ones
+  let embers = 0, lastE = -9;
+  for (const [t, st] of NOTES.notes) {
+    if (t < beatS(0) - 0.01 || t >= SLAM + 0.5 || st < 0.45 || t - lastE < 0.08) continue;
+    lastE = t; embers++;
+    const ge = hid(g()), x = x0 - 160 + R() * 340, y = 5 + R() * 50, big = st >= 0.85;
+    out.push(D(1764, x, y, { ch: chEmber, z: "B3", s: (big ? 0.6 : 0.3) + R() * 0.35, groups: [ge, ALL] }));
+    out.push(FX.T.alpha(xs(t), ge, big ? 1 : 0.8, 0), FX.T.move(xs(t), ge, (R() - 0.5) * 50, (big ? 170 : 110) + R() * 60, 0.9, FX.E.hit),
+      FX.T.alpha(xs(t + 0.25), ge, 0, 0.6));
   }
 
   // B. the arch: 9 stones on a half circle, each flying in from out of the screen and landing on its beat
@@ -105,11 +110,12 @@ function parts(ctx, songT, o = {}) {
     out.push(D(211, x, y + (key ? 11 : 8.5), { ch: chLit, z: "B2", zo: 4, sx: key ? 1.15 : 0.9, sy: 0.08, rot, groups: [gs, ALL] }));
     if (key) out.push(D(1293, x, y, { ch: chRim, z: "B1", sx: 1.3, sy: 1.0, groups: [gs, ALL] }));
     // ends first, keystone last: pairs on beats 8-12 and the keystone on 13
-    const k = 8 + Math.min(i, N - 1 - i), t = beatS(k), fly = 0.35;
+    const k = 8 + Math.min(i, N - 1 - i), t = beatS(k), fly = 0.26;
     const ox = -Math.cos(a) * 330, oy = Math.sin(a) * 160 + 90;       // starts out of the screen, up and outwards
     stones.push({ gs, ox, oy });
     out.push(FX.T.move((ctx.path[0].x || 0) + 4, gs, ox, oy, 0));                      // parked out of the screen before anything shows
     out.push(FX.T.alpha(xs(t - fly), gs, 1, 0), FX.T.move(xs(t - fly), gs, -ox, -oy, fly, 11));   // exponential in: lands ON the beat
+    out.push(FX.T.rotate(xs(t - fly), gs, i % 2 ? 360 : -360, fly, { ease: FX.E.sineOut }));          // spinning in, a whole turn
     fades.push(gs);
   }
   // the arch settles: a small drop and back on the bar after the keystone
@@ -130,10 +136,17 @@ function parts(ctx, songT, o = {}) {
   const c0 = beatS(16), c1 = beatS(28);
   out.push(FX.T.alpha(xs(c0 - 0.2), RING, 0.25, 0.4));
   for (const gr of runes) out.push(FX.T.alpha(xs(c0 - 0.2), gr, 0.3, 0.4));
-  out.push(FX.T.rotate(xs(c0), RING, 540, c1 - c0, { centre: CEN }));
-  for (let k = 16; k < 28; k++) {
-    const gr = runes[(k - 16) % 8], t = beatS(k);
-    out.push(FX.T.alpha(xs(t), gr, 1, 0), FX.T.alpha(xs(t + 0.05), gr, 0.35, 0.5));
+  out.push(FX.T.rotate(xs(c0), RING, 1080, c1 - c0, { centre: CEN }));
+  // a rune lights on every note from 0.6 up (the 8ths and 16ths, not only the beats), round the ring
+  let ri = 0, lastR = -9;
+  for (const [t, st] of NOTES.notes) if (t >= c0 && t < c1 && st >= 0.45 && t - lastR > 0.08) {
+    lastR = t; const gr = runes[ri++ % 8];
+    out.push(FX.T.alpha(xs(t), gr, 1, 0), FX.T.alpha(xs(t + 0.04), gr, 0.35, 0.3));
+  }
+  // and the whole ring kicks outward on every beat
+  for (let k = 16; k < 28; k++) for (let i = 0; i < 8; i++) {
+    const a = 2 * Math.PI * i / 8, t = beatS(k), d = k % 4 === 0 ? 14 : 8;
+    out.push(FX.T.move(xs(t), runes[i], d * Math.cos(a), d * Math.sin(a), 0.05, FX.E.hit), FX.T.move(xs(t + 0.06), runes[i], -d * Math.cos(a), -d * Math.sin(a), 0.25, FX.E.settle));
   }
   // caps flare on the loudest notes of C (strength 1, never closer than a beat)
   let last = -9, flares = 0;
@@ -143,7 +156,7 @@ function parts(ctx, songT, o = {}) {
   }
   // the sky warms through C (calm, on bar starts)
   out.push(FX.T.colour(xs(c0), 1000, COL.heat, 1.6), FX.T.colour(xs(beatS(24)), 1000, COL.heat2, 1.6));
-  log.push(`C rune ring turns ${c0.toFixed(2)}-${c1.toFixed(2)} s, runes on every beat, ${flares} cap flares`);
+  log.push(`C rune ring turns 3 times ${c0.toFixed(2)}-${c1.toFixed(2)} s, ${ri} rune flashes on the notes, ring kicks on every beat, ${flares} cap flares; ${embers} embers on notes`);
 
   // D. the music thins: the ring slows to a stop, the runes dim, the sky cools
   out.push(FX.T.rotate(xs(c1), RING, 25, SLAM - c1, { centre: CEN, ease: FX.E.sineOut }));
@@ -170,9 +183,31 @@ function parts(ctx, songT, o = {}) {
     FX.T.alpha(xs(SLAM), SEAM, 1, 0), FX.T.alpha(xs(SLAM + 0.1), SEAM, 0, 1.6));
   // the sky flashes once and the stage thuds down and settles
   out.push(FX.T.colour(xs(SLAM), 1000, COL.flash, 0), FX.T.colour(xs(SLAM + 0.02), 1000, [30, 6, 10], 0.7));
-  out.push(FX.T.move(xs(SLAM), ALL, 0, -6, 0.05, FX.E.hit), FX.T.move(xs(SLAM + 0.06), ALL, 0, 6, 0.45, FX.E.pop));
   for (const gc of caps) out.push(FX.T.alpha(xs(SLAM), gc, 1, 0), FX.T.alpha(xs(SLAM + 0.05), gc, 0.3, 1.2));
   log.push(`E doors slam at ${SLAM} s (the last big hit)`);
+
+  // ENERGY: the stage thumps on every beat (bigger on the bar), the camera punches in on each bar and the strongest notes,
+  // the sky flares on the bars of the loud part, the towers shudder on the strongest notes, and the slam shakes the screen
+  for (let k = 0; k < 31; k++) {
+    const t = beatS(k), d = k % 4 === 0 ? 9 : 4;
+    out.push(FX.T.move(xs(t), ALL, 0, -d, 0.04, FX.E.hit), FX.T.move(xs(t + 0.05), ALL, 0, d, 0.25, FX.E.settle));
+    if (k % 4 === 0) out.push(FX.T.zoom(xs(t), k >= 16 ? 1.1 : 1.05, 0.05), FX.T.zoom(xs(t + 0.06), 1, 0.4));
+    if (k >= 16 && k < 28 && k % 4 === 0) out.push(FX.T.colour(xs(t) + 0.5, 1000, [180, 50, 28], 0), FX.T.colour(xs(t + 0.03), 1000, k >= 24 ? COL.heat2 : COL.heat, 0.45));
+  }
+  let lastS = -9, shudders = 0;
+  for (const [t, st] of NOTES.notes) if (t >= beatS(4) && t < SLAM - 0.2 && st >= 0.9 && t - lastS > NOTES.period * 0.9) {
+    lastS = t; shudders++;
+    for (const [j, gp] of pillarGroups.entries()) { const dx = j % 2 ? 4 : -4;
+      out.push(FX.T.move(xs(t), gp, dx, 0, 0.03, FX.E.hit), FX.T.move(xs(t + 0.04), gp, -dx, 0, 0.2, FX.E.settle)); }
+    if (t >= c0) out.push(FX.T.zoom(xs(t) + 0.3, 1.13, 0.04), FX.T.zoom(xs(t + 0.05), 1, 0.35));
+  }
+  // the slam: a screen shake (the stage, decaying) and a big zoom punch
+  [[10, -8], [-8, 6], [6, -4], [-4, 3], [2, -2]].forEach(([dx, dy], i) => {
+    const t = SLAM + i * 0.05; out.push(FX.T.move(xs(t) + 0.2, ALL, dx - (i ? [10, -8, 6, -4][i - 1] : 0), dy - (i ? [-8, 6, -4, 3][i - 1] : 0), 0.04, FX.E.hit));
+  });
+  out.push(FX.T.move(xs(SLAM + 0.26), ALL, -2, 2, 0.1, FX.E.settle));
+  out.push(FX.T.zoom(xs(SLAM) + 0.4, 1.2, 0.05), FX.T.zoom(xs(SLAM + 0.08), 1, 1.0));
+  log.push(`ENERGY: stage thump on 31 beats, zoom punches on bars + ${shudders} strongest notes (towers shudder), sky flares on the loud bars, slam shake + zoom`);
 
   // F. the closed gate dims into the dark
   const f0 = 229.5;
