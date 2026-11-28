@@ -3,7 +3,7 @@
 //   and, column by column, compares the player with the level's solid and hazard objects near it (within 5 blocks ahead and
 //   behind): the player is OUTSIDE when it is above everything there (over the top of a corridor) or below everything (under
 //   its floor) while something exists in that column. A stretch of 0.4 s or more outside is a skip: the structure was meant
-//   to be played through. Ground (y < 15) counts as a floor. Prints each stretch with its blocks, time and mode; exit 1 when
+//   to be played through. Riding the ground under a corridor's floor counts (GDLM 78's ship at 6.5 s: "the wrong path"). Prints each stretch with its blocks, time and mode; exit 1 when
 //   any is found. Used by tools/typebuild.js --run after the solve.
 "use strict";
 const path = require("path");
@@ -38,7 +38,7 @@ function outside(objects, header, events, o = {}) {
   const out = []; let cur = null; const MIN = o.min || 0.4, dt = 1 / 240;
   for (const p of P) {
     const wxy = GD.worldXY ? GD.worldXY(p) : [p.x, p.y], xy = { x: wxy[0], y: wxy[1] }, e = near(xy.x);   // worldXY gives [x, y]
-    const off = e && ((e.top > -Infinity && xy.y - 15 > e.top + 15) || (e.bot < Infinity && xy.y + 15 < e.bot - 15 && xy.y > 30)) ? (xy.y > e.top ? "above" : "below") : null;
+    const off = e && ((e.top > -Infinity && xy.y - 15 > e.top + 15) || (e.bot < Infinity && xy.y < e.bot - 2)) ? (xy.y > e.top ? "above" : "below") : null;
     if (off && cur && cur.side === off) { cur.x1 = xy.x; cur.n++; }
     else { if (cur && cur.n * dt * (o.stride || 1) >= MIN) out.push(cur); cur = off ? { side: off, x0: xy.x, x1: xy.x, n: 1, mode: p.mode, t0: p.t != null ? p.t : null } : null; }
   }
@@ -67,7 +67,7 @@ function outsideMap(map, route, R = 5) {
   let off = 0, n = 0;
   for (const [c, r] of route || []) { const ci = Math.round(c); let top = -1, bot = H, cors = 0;
     for (let k = ci - R; k <= ci + R; k++) { const e = colInfo[k]; if (!e) continue; if (e.top >= 0) top = Math.max(top, e.top); if (e.bot < H) bot = Math.min(bot, e.bot); if (e.cor) cors++; }
-    n++; if (cors >= 3 && ((top >= 0 && r > top + 1) || (bot < H && r < bot - 1 && r > 1))) off++; }
+    n++; if (cors >= 3 && ((top >= 0 && r > top + 1) || (bot < H && r < bot - 0.15))) off++; }
   return n ? off / n : 0;
 }
 module.exports = { outside, outsideMap, file };

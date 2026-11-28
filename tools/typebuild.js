@@ -50,9 +50,26 @@ const FX_OF = { break: ["clouds", "none"], entry: ["chase", "clouds"], groove: [
 const LOOK_OF = { break: "break", drop: "drop", build: "drop" };   // else the level's first look ("calm")
 
 const tilesOf = map => LS.tiles({ map });
+// a ship / wave corridor floating over open ground is flown UNDER along the ground (GDLM 78 at 6.5 s: the ship rode the
+// ground under the "flying on the grounds" corridor, its own check took 0 presses; Evgeni: "the wrong path"): every column
+// whose lowest cell is a corridor floor (an open run of 2+ rows over it, something over that) is filled down to the ground
+const SOLIDC = /[#^vosq\/\\7r]/;
+function closeBelow(map) {
+  const H = map.length, W = map[0].length, g = map.map(l => [...l]), at = (c, r) => SOLIDC.test(g[H - 1 - r][c]);
+  for (let c = 0; c < W; c++) { let r0 = -1; for (let r = 0; r < H; r++) if (at(c, r)) { r0 = r; break; }
+    if (r0 <= 0) continue; let r1 = -1; for (let r = r0 + 1; r < H; r++) if (at(c, r)) { r1 = r; break; }
+    // the floor's run of cells, then the open run over it
+    let top = r0; while (top + 1 < H && at(c, top + 1)) top++;
+    let nxt = -1; for (let r = top + 1; r < H; r++) if (at(c, r)) { nxt = r; break; }
+    if (r1 < 0 || nxt < 0 || nxt - top - 1 < 2) continue;
+    for (let r = 0; r < r0; r++) if (g[H - 1 - r][c] === ".") g[H - 1 - r][c] = "#"; }
+  return g.map(l => l.join("")); }
 // a join with room around its portal (the judge's "abrupt switch": the mains keep ~0.37 s quiet before a mode change and
 // ~0.48 s after): lib/scenejoin.js's ramp with its first column held LEAD more columns and its last one TAIL more
-const LEAD = 4, TAIL = 5, SPLIT_S = 5, BANDED = new Set(["ship", "ufo", "wave", "swing"]);
+const STEP = { easy: "normal", normal: "hard", hard: "harder", harder: "extreme", extreme: "extreme" };
+// the presses a second a section should reach at its tier (rated levels: about 2 a second; the user: "not so sparse")
+const CPS_FLOOR = { easy: 1, normal: 1.2, hard: 1.5, harder: 1.8, extreme: 2 };
+const FLIPS = new Set(["ball", "spider", "wave", "cube-ud"]), LEAD = 4, TAIL = 5, SPLIT_S = 9, BANDED = new Set(["ship", "ufo", "wave", "swing"]);
 function joinPad(a, b) {
   const j = SJ.join(a, b), first = j.tiles.filter(q => q.c === 0), last = j.tiles.filter(q => q.c === j.n - 1), out = [];
   for (let k = 0; k < LEAD; k++) for (const q of first) if (q.t === "#") out.push({ t: "#", c: k, r: q.r });
@@ -99,10 +116,11 @@ function plan(brief, o = {}) {
       s.type = GR.pick(list, SG.rng((brief.seed || 7) * 131 + s.i), { avoid: usedT, last }); }
     last = s.type; usedT.add(s.type);
   }
+  // (SPLIT_S was 5 until GDLM 78: its 6 s song sections came out as 3 s halves with 0-3 presses each; Evgeni: "some
+  // sections are way too short with almost no gameplay". Now a half is 4.5 s or more.)
   // a section over SPLIT_S seconds is two ideas, not one corridor (the judge on GDLM 76 v1: "long corridor: 6.3 s of one
   // corridor (want 4 s or less per idea)", "no variety: 7.2 s with one kind of obstacle"): cut at its middle bar, the second
   // half another type of the same mode, or the same type a tier harder (its peak) when the mode has one type
-  const STEP = { easy: "normal", normal: "hard", hard: "harder", harder: "extreme", extreme: "extreme" };
   const out = [], usedB = new Set(secs.map(s => s.type));
   for (const s of secs) {
     if (s.secs <= (brief.split ?? SPLIT_S) || s.noSplit) { out.push(s); continue; }
@@ -126,15 +144,19 @@ function build(brief, o = {}) {
   for (const s of secs) {
     const endCol = col + s.secs * BPS[s.speed];
     const beatCols = P * BPS[s.speed];
-    let best = null;
+    let best = null, tier = s.tier;
+    const floor = CPS_FLOOR[s.tier] || 1.2, cpsOf = c => c.ok ? c.presses / Math.max(1, s.secs) : 0;
     for (let k = 0; k < nSeeds; k++) {
+      // dead time (Evgeni, GDLM 78: "way too much dead time"): after 3 seeds under the tier's clicks a second, a tier harder
+      if (k === 3 && best && best.c.ok && cpsOf(best.c) < floor * 0.7 && STEP[tier] !== tier) { console.log(`   s${s.i}: ${cpsOf(best.c).toFixed(1)} presses/s, under ${floor}: trying ${STEP[tier]}`); tier = STEP[tier]; }
       const seed = s.seed != null ? s.seed + k : seed0 * 100 + s.i * 10 + k;
-      const gen = W => { const z = SG.make(s.type, { cols: Math.max(16, Math.round(W)), seed, tier: s.tier, beatCols, speed: BPS[s.speed] / BPS["1x"] });
+      const gen = W => { const z = SG.make(s.type, { cols: Math.max(16, Math.round(W)), seed, tier, beatCols, speed: BPS[s.speed] / BPS["1x"] });
         if (s.mode === "cube-ud" && !z.map.some(l => /G/.test(l))) {   // upside down needs a G portal inside: another flipping type
           for (const k2 of ["my-mwz1637w", "staircase", "closecube"]) { if (k2 === s.type) continue;
-            const z2 = SG.make(k2, { cols: Math.max(16, Math.round(W)), seed, tier: s.tier, beatCols, speed: BPS[s.speed] / BPS["1x"] });
+            const z2 = SG.make(k2, { cols: Math.max(16, Math.round(W)), seed, tier, beatCols, speed: BPS[s.speed] / BPS["1x"] });
             if (z2.map.some(l => /G/.test(l))) { s.type = k2; return z2; } }
           return k > 1 ? z : null; }   // none flips at this length: the plain cube after a few tries
+        if (z && (s.mode === "ship" || s.mode === "wave")) z.map = closeBelow(z.map);
         return z; };
       let z = gen(endCol - col - 4); if (!z) continue;
       const cur = { T: tilesOf(z.map), w: z.map[0].length, h: z.map.length };
@@ -144,11 +166,11 @@ function build(brief, o = {}) {
       z.speedName = s.speed; const c = LC.check(z);   // checked at its own speed, not 1x
       // a seed whose own solve flies over or under its structure is a secret way (Evgeni 2026-11-28): scored down by the share
       const around = c.ok ? OU.outsideMap(z.map, c.route) : 0;
-      const score = c.ok ? 100 + c.presses - (c.tight && c.tight[0] && c.tight[0].ms < 60 ? 50 : 0) - Math.round(around * 300) : -1;
+      const score = c.ok ? 100 + c.presses - Math.round(Math.max(0, floor - cpsOf(c)) * 20) - (c.tight && c.tight[0] && c.tight[0].ms < 60 ? 50 : 0) - Math.round(around * 300) : -1;
       if (around > 0.05) console.log(`   s${s.i} seed ${seed}: the solve flies around the structure for ${Math.round(around * 100)}% of the way`);
       console.log(`   s${s.i} ${s.type} seed ${seed}: ` + (c.ok ? `solves, ${c.presses} presses, ${c.label}${c.tight[0] ? ", tightest " + c.tight[0].ms + " ms" : ""}` : `no (${c.why} at col ${c.dieCol})`));
-      if (!best || score > best.score) best = { z, c, seed, score };
-      if (c.ok && (s.seed != null || k >= 2) && best.score >= 100) break;
+      if (!best || score > best.score) best = { z, c, seed, score, tier };
+      if (c.ok && (s.seed != null || k >= 2) && best.score >= 100 && cpsOf(best.c) >= floor * 0.7) break;
     }
     if (!best) throw new Error(`s${s.i}: no ${s.type} for ${s.mode}`);
     const z = best.z, cur = { T: tilesOf(z.map), w: z.map[0].length, h: z.map.length, mode: s.mode };
@@ -156,11 +178,12 @@ function build(brief, o = {}) {
     let jn = 0, j = null;
     if (prev) { j = joinPad(prev.cur, cur); jn = j.n; for (const q of j.tiles) tiles.push({ t: q.t, c: q.c + col, r: q.r }); }
     // the portal wall: the last column of the join, across the gap the player can be in there
-    // two sections of one flying mode in a row get a portal of that mode too: it sets the flying band again around the player
-    // (a portal of your own mode re-bands, CLAUDE.md Calibration), so the second one is played in the band it was checked in
-    // (GDLM 78: the second swing inherited the first one's band, flew over its saws and missed its band movers)
-    const reband = prev && mode === prev.mode && BANDED.has(mode);
-    if (prev && (mode !== prev.mode || s.speed !== prevSpeed || reband)) portals.push({ c: col + (j ? j.portalAt : 0), row: prev.exitRow, mode: mode !== prev.mode || reband ? mode : null, speed: s.speed !== prevSpeed ? s.speed : null, from: prev.mode, next: col + (j ? j.n : 0) + 1 });
+    // after a section the player can leave upside down (ball, spider, wave, an upside-down cube) a gravity portal back to
+    // normal stands in the wall (Evgeni on GDLM 78: "after things that can be in both gravities ( ball spider wave ), we need
+    // to put an extra portal for the gravity we want"): the next section was checked starting the right way up. No portal of
+    // the same mode only to set the band again (he: "many portals where we dont really need to change the view").
+    const fixGrav = prev && FLIPS.has(prev.raw);
+    if (prev && (mode !== prev.mode || s.speed !== prevSpeed || fixGrav)) portals.push({ c: col + (j ? j.portalAt : 0), row: prev.exitRow, mode: mode !== prev.mode ? mode : null, grav: fixGrav, speed: s.speed !== prevSpeed ? s.speed : null, from: prev.mode, next: col + (j ? j.n : 0) + 1 });
     const c0 = col + jn;
     // an apron after a mode portal: no hazard in the new section's first APRON columns (a section is generated and
     // checked entering at its own start, but the portal can leave the player at another row: GDLM 76 v3's swing put a saw
@@ -168,9 +191,9 @@ function build(brief, o = {}) {
     const apron = prev && mode !== prev.mode ? APRON : 0;
     for (const q of cur.T) if (!(q.c < apron && HAZ.has(q.t))) tiles.push({ t: q.t, c: q.c + c0, r: q.r });
     parts.push({ i: s.i, sub: s.sub, seed: best.seed, type: s.type, mode, c0: col, c1: c0 + cur.w, look: s.look, b0: s.b0, b1: s.b1, kind: s.kind, speed: s.speed, t0: s.t0, t1: s.t1, floor: SJ.floorEdge(cur.T, 0, "L") });
-    report.push(`s${s.i} b${s.b0}-${s.b1} ${s.kind.padEnd(6)} ${s.mode.padEnd(7)} ${s.speed} ${s.type} (${z.name}, ${s.tier}) cols ${col.toFixed(0)}-${(c0 + cur.w).toFixed(0)} seed ${best.seed}: ` +
+    report.push(`s${s.i} b${s.b0}-${s.b1} ${s.kind.padEnd(6)} ${s.mode.padEnd(7)} ${s.speed} ${s.type} (${z.name}, ${best.tier || s.tier}) cols ${col.toFixed(0)}-${(c0 + cur.w).toFixed(0)} seed ${best.seed}: ` +
       (best.c.ok ? `${best.c.presses} presses, ${best.c.label}` : best.c.ok === null ? "not checked" : "DOES NOT SOLVE ALONE"));
-    const rt = best.c && best.c.route; col = c0 + cur.w; prev = { cur, mode, exitRow: rt && rt.length ? Math.round(rt[rt.length - 1][1]) : null }; prevSpeed = s.speed;
+    const rt = best.c && best.c.route; col = c0 + cur.w; prev = { cur, mode, raw: s.mode, exitRow: rt && rt.length ? Math.round(rt[rt.length - 1][1]) : null }; prevSpeed = s.speed;
   }
   // the joined map -> objects
   const H = Math.max(...tiles.map(q => q.r)) + 1, W = Math.ceil(col), g = Array.from({ length: H }, () => Array(W).fill("."));
@@ -191,7 +214,7 @@ function build(brief, o = {}) {
     // a jump, not walked into (the judge's "walked portal": official portals 93% taken on the move; Hellgate thread's run)
     const ground = (p.from === "cube" || p.from === "robot") && run0.b - run0.a >= 4, run = ground ? { a: run0.a + 1, b: run0.b } : run0;
     if (ground) extra.push(["block", c, run0.a]);
-    for (let r = run.a + 1; r <= Math.max(run.a + 1, run.b - 1); r += 3) { if (p.mode) extra.push([PORTAL[p.mode], c, r]); if (p.speed) extra.push([SPEEDN[p.speed], c - 1, r]); }
+    for (let r = run.a + 1; r <= Math.max(run.a + 1, run.b - 1); r += 3) { if (p.mode) extra.push([PORTAL[p.mode], c, r]); if (p.speed) extra.push([SPEEDN[p.speed], c - 1, r]); if (p.grav) extra.push([10, c + 1, r]); }
     for (let r = 0; r <= top; r++) if ((r < run.a || r > run.b) && (map[H - 1 - r] === undefined || ".D".includes(map[H - 1 - r][c]))) extra.push(["block", c, r]);
   }
   const objects = ["// built by tools/typebuild.js from section types (tools/sectiongen.js)"];

@@ -45,15 +45,36 @@ function load(song) {
     impacts: j.impacts.map(([t, beat, strength, kind]) => ({ t, beat, strength, kind })) };
   return { j, music, end: j.notes[j.notes.length - 1][0] };
 }
+// Where the music drops: a bar whose loudness (bars[].intensity, two bars after vs two before) rises by 0.2+ to 0.4+.
+// The impact list alone has no "drop" kind on many songs (Hellgate's 42.5 s drop is only a loudness jump), and the old
+// first-come cut took any entry 6 s before it and then skipped the drop (Evgeni, 2026-11-28: "in hellgate also on the drops
+// we didnt have a transition, it was the middle of a section").
+function drops(music) {
+  const B = music.bars || [], I = i => (B[i] && B[i].intensity) || 0, out = [];
+  for (let i = 2; i + 1 < B.length; i++) { const before = (I(i - 2) + I(i - 1)) / 2, after = (I(i) + I(i + 1)) / 2, rise = after - before;
+    if (rise >= 0.2 && after >= 0.4) out.push({ t: B[i].t, kind: "drop", strength: Math.min(1.5, 0.6 + rise * 2), rise }); }
+  return out;
+}
+// The cuts, strongest first (not first come): drops, then entries / changes, then any strong impact; each kept when it is
+// 6 s from every kept cut (5 s when either is a drop), so a drop is never lost to a weaker change just before it.
 function cuts(music, end) {
-  const c = [0]; for (const im of music.impacts) { const gap = im.t - c[c.length - 1]; if ((/drop|entry|change/.test(im.kind) && gap >= 6) || (im.strength >= 0.5 && gap > 16)) c.push(im.t); }
-  c.push(end); return c;
+  const cand = [...drops(music).map(d => ({ ...d, pri: 2 + d.strength })),
+    ...music.impacts.filter(im => /drop|entry|change/.test(im.kind)).map(im => ({ ...im, pri: (im.kind === "drop" ? 2 : 1) + (im.strength || 0) })),
+    ...music.impacts.filter(im => !/drop|entry|change/.test(im.kind) && im.strength >= 0.5).map(im => ({ ...im, pri: im.strength, far: true }))]
+    .filter(c => c.t > 2 && c.t < end - 3).sort((a, b) => b.pri - a.pri);
+  const kept = [{ t: 0, kind: "start" }, { t: end, kind: "end" }];
+  for (const c of cand) {
+    const ok = kept.every(k => { const gap = Math.abs(k.t - c.t), drop = c.kind === "drop" || k.kind === "drop";
+      return gap >= (c.far ? 16 : drop ? 5 : 6) || (k.kind === "start" && gap >= 3); });
+    if (ok) kept.push(c);
+  }
+  return kept.map(k => k.t).sort((a, b) => a - b);
 }
 // the typed sections between the cuts
 function sections(song) { const { j, music, end } = load(song), cs = cuts(music, end), out = []; let prev = null;
   for (let i = 0; i + 1 < cs.length; i++) { prev = character(music, cs[i], cs[i + 1], prev); out.push(prev); }
   return { notes: j, music, cuts: cs, sections: out }; }
-module.exports = { character, load, cuts, sections };
+module.exports = { character, load, cuts, drops, sections };
 
 if (require.main === module) {
   const song = process.argv[2] || "CantLetGo";
