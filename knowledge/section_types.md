@@ -365,6 +365,21 @@ which the sim does not have yet (PHYSICS.md open).
 - **Cube types and wave at 2x rows** (2026-11-27): closecube's corridor steps a row up or down every 8-14 columns,
   wandering the map (80x16: 88-89%, was fixed at 5 rows); opencube climbs up to (rows - 2) / 2 platforms (80x16: 73-87%);
   staircase scales by itself (80x18: 50-82%); wave over 13 rows gets hidden A portals (80x20: 79-92%). All solve.
+- **Flappy taller than 10 rows, presses first** (2026-11-28, Evgeni: "try to extend the generators to use full height when
+  possible"): the taps' tour now spans the whole map; where the planned path comes within 2 rows of the ufo's 10-row band
+  edge a U (ufo portal in a ufo, the band set again) goes on the path itself, so the poles' gap holds it. 24/24 plans clear
+  at 14, 20 and 24 rows (40 and 80 cols); the path spans 8-12 rows at 14, up to 17 at 20, up to 21 at 24 (80 cols). The old
+  shape-first version is `shape: true`.
+- **Out of a flying section into a gated portal** (2026-11-28, lib/scenejoin.js): a section that ends flying in the open
+  (no floor or ceiling at its exit, e.g. the tall swing's saw corridor 14 rows up) gets a descent in the join from its exit
+  corridor's middle to the mouth, 1.5 columns a row, with a band mover of its mode (R swing, H ship, U ufo, A wave) every 3
+  rows. The theme gallery clears again with it (107 presses).
+- **Secret ways and skips** (2026-11-28, Evgeni: "be careful for secret ways and skipping the structures (in wave for
+  example)"): `node tools/secretways.js` solves each generated section and compares the solver's route with the plan (SKIP:
+  over a quarter of its route 3+ rows off the plan, or outside the map). First sweep, 44 sections at 60 cols: one real skip,
+  the spider landing on bare ground in the column between two ground spike groups and tapping up from it (5 presses for a
+  9-press plan); that column now holds a half-buried saw (ball, ball portals, spider: 0 of 18 flagged after). Fly, wave and
+  flappy are often flown with far fewer presses on the same path (LOOSE: the corridor roomier than the plan's rhythm).
 - **A minimum length per type** (Evgeni: some need room for real play, robot and orbs).
 - Height at 1.5x rows, 60 cols (easy/harder, 2 seeds): wave 93%, fly 76%, ship corridor 80%, staircase 85%, closecube 80%,
   ball 75%, spider 67%, opencube 68%, flappy 60%, orbs 55%. The cube types need their climbs scaled to the taller map.

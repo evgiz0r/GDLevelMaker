@@ -693,7 +693,11 @@ CONCEPT.flappy = "pipe pairs from floor and ceiling; the gap's height walks up a
 function ufoStep(st, tap) { if (tap && st.vy < 7) st.vy = 7; const falling = st.vy <= 2 * SHIP.g;
   st.vy = Math.round((st.vy - (falling ? 0.4 : 0.6) * SHIP.g * SHIP.DTS) * 1000) / 1000; st.vy = clamp(st.vy, SHIP.DOWN, SHIP.UP); st.y += st.vy * SHIP.DTS; }
 GEN.flappy = o => { const { R, imix, room, len, chance, W, H, G, mix, style, onBeat, entry } = ctx(o, 10), gh = room(5, 3);
-  if (H > 10) return flappyShape(o);
+  // taller than the band (Evgeni 2026-11-28: "try to extend the generators to use full height when possible"): GD keeps a
+  // ufo in a 10-row band, so where the planned path comes within 2 rows of the band's edge a U (a ufo portal in a ufo: the
+  // band set again around it, lib/physics.js) goes on the path itself, in the gap the poles are fitted around
+  if (H > 10 && o.shape) return flappyShape(o);
+  const movers = []; let bandLo = 0;
   // it comes in at a random height (Evgeni 2026-11-28): on a pillar b0 rows high over the first 3 columns (up to row 4,
   // so the ufo's band stays at the ground)
   const b0 = entry(0, Math.min(4, H - 6)); if (b0 > 0) G.box(0, 2, 0, b0 - 1);
@@ -706,7 +710,10 @@ GEN.flappy = o => { const { R, imix, room, len, chance, W, H, G, mix, style, onB
       if (row < tgt + 0.6 && st.y < top - 75) { tap = true; taps.push(+c.toFixed(4)); }   // above the target: let it fall a beat
       // climbing to a higher target takes quicker taps (one every 0.55 s can't hold a ufo up)
       nextTap = onBeat(c + gap0 * (row < tgt - 0.5 ? 0.55 : 1) * (0.8 + R() * 0.4) / style.pace(c), c + 6 / TPC); }
-    ufoStep(st, tap); const fl = (c + 0.5 < 3 ? b0 : 0) * 30 + 15; if (st.y < fl) { st.y = fl; st.vy = 0; }   // (on the pillar while over it) if (st.y > top - 15) { st.y = top - 15; st.vy = 0; }
+    if (H > 10) { const row = st.y / 30 - 0.5, lastM = movers.length ? movers[movers.length - 1].c : -9;
+      if (c > 3 && c < W - 3 && c - lastM >= 3 && ((row > bandLo + 8 && bandLo + 10 < H) || (row < bandLo + 2 && bandLo > 0))) {
+        const r = Math.round(st.y / 30 - 0.5), cc = Math.round(c); movers.push({ c: cc, r }); bandLo = Math.max(0, Math.floor((r * 30 + 15 - 150) / 30)); } }
+    ufoStep(st, tap); if (H > 10 && st.y > (bandLo + 10) * 30 - 15) { st.y = (bandLo + 10) * 30 - 15; st.vy = 0; } if (H > 10 && bandLo > 0 && st.y < bandLo * 30 + 15) { st.y = bandLo * 30 + 15; st.vy = 0; } const fl = (c + 0.5 < 3 ? b0 : 0) * 30 + 15; if (st.y < fl) { st.y = fl; st.vy = 0; }   // (on the pillar while over it) if (st.y > top - 15) { st.y = top - 15; st.vy = 0; }
     ys.push(st.y); }
   const yb = Array(W).fill(1e9), yt = Array(W).fill(-1e9);
   for (let t = 0; t < ys.length; t++) { const c = Math.floor(t / TPC); if (c < W) { yb[c] = Math.min(yb[c], ys[t] - 15); yt[c] = Math.max(yt[c], ys[t] + 15); } }
@@ -718,6 +725,7 @@ GEN.flappy = o => { const { R, imix, room, len, chance, W, H, G, mix, style, onB
     if (g0 > 0) { G.box(c, c + pw - 1, 0, g0 - 1); if (g0 > 1 && yb[c] > (g0 - 1) * 30 + 30 + 8 && chance(0.4, 0.7)) { /* the pole's top is the hazard's place: a spike tip */ G.put(c, g0 - 1, "^"); } }
     if (g1 < H) G.box(c, c + pw - 1, g1, H - 1);
     c += pw + len(room(5, 3), room(7, 4)); }
+  for (const v of movers) G.put(v.c, v.r, "U");
   // a spike tip replaces the pole's top block, so the gap stays as fitted (the block under it carries it)
   return { map: G.rows(), mode: "ufo", presses: taps, path: (() => { const p = []; for (let t = 0; t < ys.length; t += 8) p.push([+(t / TPC).toFixed(2), +(ys[t] / 30 - 0.5).toFixed(2)]); return p; })() }; };
 // the shape-first flappy (taller than the band: its hidden U portals)
@@ -830,7 +838,10 @@ function rollers(o, { mode, band, travel, portals = 0, overlap = null }) { const
   for (let c = 0; c < W; c++) { if (Oc[c] + BT < H) G.box(c, c, Oc[c] + BT, tall ? H - 1 : Oc[c] + BT); if (Oc[c] > 0) G.box(c, c, tall ? 0 : Oc[c] - 1, Oc[c] - 1); }
   for (const [d, t] of [[0, "^"], [BT - 1, "v"]]) for (let c = 0; c < W;) {
     if (R.chance(0.2)) { G.put(c, Oc[c] + d, "o"); c += 2; continue; }
-    const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, Oc[c + k] + d, t); c += n + 1; }
+    // the column between two groups holds a half-buried saw (2026-11-28, tools/secretways.js: a spider landed in that
+    // gap on the bare ground and tapped up from it, 5 presses for a 9-press plan; a ball can flip off it the same way)
+    const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, Oc[c + k] + d, t);
+    if (c + n < W) G.put(c + n, Oc[c + n] + d, "o"); c += n + 1; }
   for (const s of S) { const c1 = Math.min(W - 1, s.c1), y = s.y + (s.mover ? s.mover.O : s.O);   // its row on the map
     // a surface on the band's edge rolls where the edge hazards are: clear them under it, by its row on the map against
     // each column's band (a surface with a mover spans two bands; its s.y is in the new one)
@@ -1131,7 +1142,10 @@ GEN["my-mwz7nxue"] = o => { const { R, mix, W, H, G, style, onBeat, entry } = ct
   for (let c = 0; c < W; c++) { if (Oc[c] + BT < H) G.box(c, c, Oc[c] + BT, tall ? H - 1 : Oc[c] + BT); if (Oc[c] > 0) G.box(c, c, tall ? 0 : Oc[c] - 1, Oc[c] - 1); }
   for (const [d, t] of [[0, "^"], [BT - 1, "v"]]) for (let c = 0; c < W;) {
     if (R.chance(0.2)) { G.put(c, Oc[c] + d, "o"); c += 2; continue; }
-    const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, Oc[c + k] + d, t); c += n + 1; }
+    // the column between two groups holds a half-buried saw (2026-11-28, tools/secretways.js: a spider landed in that
+    // gap on the bare ground and tapped up from it, 5 presses for a 9-press plan; a ball can flip off it the same way)
+    const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, Oc[c + k] + d, t);
+    if (c + n < W) G.put(c + n, Oc[c + n] + d, "o"); c += n + 1; }
   for (const t of S) { const b = Math.min(W - 1, t.b);
     for (let c = t.a; c <= b; c++) { const y = (t.mover && c >= t.mover.c ? t.mover.rel + t.mover.O : t.y + t.O);
       // its blocks, and the band's hazard where it runs on the band's edge (and the two columns past an edge's end)
