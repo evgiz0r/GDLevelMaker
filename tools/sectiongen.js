@@ -1162,19 +1162,34 @@ const groundsPlan = o => { const C = ctx(Object.assign({ cols: 56 }, o), 10), { 
   for (let t = 0; t < ys.length; t++) { const c = Math.floor(t / TPC); if (c < W) { yb[c] = Math.min(yb[c], ys[t] - 15); yt[c] = Math.max(yt[c], ys[t] + 15); if (!tr[t]) ok[c] = false; } }
   tunnel(G, W, e, gap, H - 1, 2);
   bandMovers(G, W, H, "H", x => e(x) + gap / 2, x => Math.max(e(x), e(x + 1)), x => Math.min(e(x), e(x + 1)) + gap);
+  const presses = []; for (let i = 0; i < ev.length; i++) if (ev[i][1] === "press") presses.push([ev[i][0], ev[i + 1] ? ev[i + 1][0] : W]);
+  // THE REAL PATH (2026-11-28): the stepper drifts off the real ship after a sloped floor or roof, so in node the planned
+  // holds are replayed in lib/physics.js through the bare corridor (layoutcheck planCheck, every tick) and the spikes go
+  // against that path; the browser (no layoutcheck) keeps the stepper's path with its trust marks
+  let LC = null; try { LC = require("./layoutcheck.js"); } catch (e) {} const real = !!(LC && typeof LC.planCheck === "function");
+  const pc = (m, every) => { const log = console.log; console.log = () => {}; try { return LC.planCheck({ key: "my-mwz1s7po", map: m, mode: "ship", presses }, { every }); } finally { console.log = log; } };
+  let margin = 12;
+  if (real) { const c0 = pc(G.rows(), 1); if (!c0.ok) return null; margin = 6; yb.fill(1e9); yt.fill(-1e9); ok.fill(true);
+    for (const [cc, r] of c0.path) { const c = Math.floor(cc), y = (r + 0.5) * 30; if (c >= 0 && c < W) { yb[c] = Math.min(yb[c], y - 15); yt[c] = Math.max(yt[c], y + 15); } } }
   // spikes on the side not ridden, in runs, a column clear now and then (flat columns only: a spike never on a slope)
   // the stepper doesn't copy the ship riding a sloped floor or roof (it drifts up to 25 units off the real one there), so
   // no spike from a climb's or drop's start to 4 columns past its end, and a 12-unit margin elsewhere
-  const nearSlope = c => { for (let x = c - 4; x <= c; x++) if (x >= 0 && e(x) !== e(x + 1)) return true; return false; };
+  const nearSlope = c => { if (real) return false; for (let x = c - 4; x <= c; x++) if (x >= 0 && e(x) !== e(x + 1)) return true; return false; };
+  const placed = [], put = (c, r, ch) => { G.put(c, r, ch); placed.push([c, r]); };
   for (let c = 3; c < W - 2; c++) { const b = e(c); if (e(c - 1) !== b || e(c + 1) !== b || nearSlope(c) || !ok[c - 1] || !ok[c] || !ok[c + 1]) continue;
-    const okF = [c - 1, c, c + 1].every(x => yb[x] > b * 30 + 21 + 12), okR = [c - 1, c, c + 1].every(x => yt[x] < (b + gap - 1) * 30 + 9 - 12);
+    const okF = [c - 1, c, c + 1].every(x => yb[x] > b * 30 + 21 + margin), okR = [c - 1, c, c + 1].every(x => yt[x] < (b + gap - 1) * 30 + 9 - margin);
     if (R.chance(0.15)) continue;
-    if (okF && !okR) G.put(c, b, "^"); else if (okR && !okF) G.put(c, b + gap - 1, "v"); else if (okF && okR && R.chance(0.5)) G.put(c, R.chance(0.5) ? b : b + gap - 1, R.chance(0.5) ? "^" : "v"); }
-  const presses = []; for (let i = 0; i < ev.length; i++) if (ev[i][1] === "press") presses.push([ev[i][0], ev[i + 1] ? ev[i + 1][0] : W]);
+    if (okF && !okR) put(c, b, "^"); else if (okR && !okF) put(c, b + gap - 1, "v"); else if (okF && okR && R.chance(0.5)) put(c, R.chance(0.5) ? b : b + gap - 1, R.chance(0.5) ? "^" : "v"); }
+  // the plan must still clear with the spikes in: one it touches comes out (a few rounds), else this seed is no good
+  if (real) for (let k = 0; ; k++) { const c1 = pc(G.rows(), 8); if (c1.ok) break; if (k >= 6) return null;
+    const near = placed.filter(q => q && Math.abs(q[0] + 0.5 - c1.dieCol) <= 1.6); if (!near.length) return null;
+    for (const q of near) { G.put(q[0], q[1], "."); placed[placed.indexOf(q)] = null; } }
   const path = []; for (let t = 0; t < ys.length; t += 8) path.push([+(t / TPC).toFixed(2), +(ys[t] / 30 - 0.5).toFixed(2)]);
   return { map: G.rows(), mode: "ship", presses, path }; };
-// the shape-first version (the one in use)
-GEN["my-mwz1s7po"] = o => { const { R, imix, room, len, chance, W, H, G } = ctx(Object.assign({ cols: 56 }, o), 10), gap = room(5, 3);
+// presses first in node (the plan replayed for real, a few seeds), the shape-first version in the browser or as the fallback
+GEN["my-mwz1s7po"] = o => { if (!o.shape) for (let k = 0; k < 6; k++) { const z = groundsPlan(Object.assign({}, o, { seed: (o.seed ?? 1) + 1000 * k })); if (z && (!o.verify || o.verify(z))) return z; }
+  return groundsShape(o); };
+const groundsShape = o => { const { R, imix, room, len, chance, W, H, G } = ctx(Object.assign({ cols: 56 }, o), 10), gap = room(5, 3);
   // the ship's band is 10 rows: the corridor tours all of it, down to the ground (no lower bar there) and up to the roof
   const next = tour(R, 0, H - gap);
   const e = line(W, Math.round((H - gap) / 2), L => { L.run(len(imix(10, 6), imix(12, 8))); L.leg(next(L.h())); });
