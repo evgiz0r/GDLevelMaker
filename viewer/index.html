@@ -25,6 +25,8 @@
   #ctxbar { flex-basis:100%; display:flex; flex-direction:column; gap:0; margin:2px -16px -10px; }
   #ctxbar:not(:has(> :not([hidden]))) { display:none; }
   header #taskChip { position:static; border-radius:8px; }
+  #play { min-width:6.6em; }   /* ▶ play / ❚❚ pause: the same width, so the top bar never re-wraps and moves the level */
+  #views + #notice { position:static; transform:none; width:var(--col, auto); max-width:100%; box-sizing:border-box; margin:6px auto 0; box-shadow:none; }
   header #notice { position:static; transform:none; max-width:none; margin:4px 16px 6px; }
   header .cmpbar { padding:4px 10px; }
   .cmpbar[hidden], #stagebar[hidden], #secbar[hidden], #varbar[hidden] { display:none; }
@@ -35,6 +37,14 @@
   button.on { background:#3b2d78; border-color:var(--cube); }
   #wrap { position:relative; }
   /* the level's zoom sits in the top bar, never over the level (Evgeni, 2026-11-27: "UI should be outside the gameplay windows") */
+  /* the marks bar (CALM MARKS): one row above the level, always the same height, so typing a note never moves the level */
+  #markBar { display:flex; flex-wrap:nowrap; gap:6px; align-items:center; height:38px; box-sizing:border-box; padding:0 10px; background:#120a2e; border-top:1px solid #2b2060; overflow-x:auto; overflow-y:hidden; white-space:nowrap; font-size:13px; scrollbar-width:thin; }
+  #markBar button, #markBar select { padding:3px 8px; font-size:12px; flex:0 0 auto; }
+  #markBar #mkPart { max-width:210px; }
+  #markBar .mkAt { color:#ffe14d; flex:0 0 auto; }
+  #markBar .mkHint { overflow:hidden; text-overflow:ellipsis; flex:1 1 auto; min-width:0; }
+  #mkNote { flex:1 1 220px; min-width:120px; background:#0b0620; color:var(--ink); border:1px solid #6b5bd0; border-radius:6px; padding:5px 8px; font:inherit; }
+  #markBar #mkSt { flex:0 0 auto; }
   #vz { display:inline-flex; gap:2px; }
   #vz button { padding:6px 8px; min-width:2em; }
   canvas { display:block; width:100%; height:min(60vh, 460px); background:#0e0828; touch-action:none; }
@@ -275,6 +285,8 @@ let t = 0, playing = false, speed = 1, showHit = false, sound = true, lastTick =
 // ?mute=1: silent (no music, no click sound); ?test=1: silent too, and every action the page sends is marked as a test
 // (marks, attempts, reviews, answers: kept out of the actions feed) and no preference is saved. Sessions' experiments,
 // tools/headless.js and every check in the browser pane open the viewer with test=1 (CLAUDE.md: experiments are silent).
+// the marks bar's state (see "CALM MARKS" below): declared first, load() already draws the marks
+const MK = { edit: null, down: null, live: null, saveT: 0, st: "", busyAt: 0, hint: false }, PART = { list: [], cur: null, of: null };
 const QS = new URLSearchParams(location.search), TESTPAGE = QS.get("test") === "1", MUTED = TESTPAGE || QS.get("mute") === "1";
 if (MUTED) sound = false;
 if (TESTPAGE) {
@@ -587,7 +599,7 @@ function load(name, levelStr, saved, info) {
   const grid = info && (info.grid || (window.GD_BEATS || {})[info.url]);   // a level's own grid (its spec pinned one) first
   L.beats = grid ? { grid, offset: info.offset || 0, tl: GD.SYNC.timeline(world) } : null;
   t = 0; lastTick = -1; playing = false; setPlay();
-  summary(); clickTable(); markTable(); if (cmpOn) cmpLoadSetting(); draw();
+  if (MK.edit && MK.edit.level !== name) markClose(true); summary(); clickTable(); markTable(); markBar(); if (cmpOn) cmpLoadSetting(); draw();
   windowsLater(L, events, saved);
   setTimeout(() => runsFor(L), 0); if (typeof runBtnState === "function") runBtnState();
 }
@@ -1825,15 +1837,20 @@ function beep() {
 }
 
 // ---------- marks: the user's notes on a spot of a level, for the next round ----------
-// Saved by tools/serve.js to marks/marks.jsonl (one JSON line each; a later line with the same id
-// updates it, e.g. {id, done:true, reply}). Without the server (file:// or the phone page) they
-// stay in this browser only.
-let MARKS = [], marking = false;
+// CALM MARKS (Evgeni, 2026-11-28: "i need to be able to mark things on a level ... when i click edit its always the same
+// level, its not a new 'mode', i dont go anwhere else. no big flashes no big jumps"). No mark mode: a tap on the level pins
+// a note there, a drag draws on it (the replay pauses where it is: the camera, the level and the song stay). The note is
+// typed in the marks bar, a fixed row above the level that never changes height, and saves as it is typed (no save
+// button). 📨 sends Claude every mark that is new or changed since it was last sent. "part" plays one section of the level
+// in a loop and shows its marks. Saved by tools/serve.js to local/marks.jsonl on the PC (one JSON line per save; a later line
+// with the same id updates it, e.g. {id, done:true, reply}); on the phone page to its database (tools/web.js); without
+// either, in this browser only.
+let MARKS = [], marking = false;   // `marking` stays false: there is no mark mode any more (kept for old tests and pages)
 const markKey = "gdlm.marks.local";
 function foldMarks(lines) {
   const by = new Map();
   for (const m of lines) by.set(m.id, Object.assign(by.get(m.id) || {}, m));
-  return [...by.values()].filter(m => m.note != null);
+  return [...by.values()].filter(m => m.note != null && !m.deleted);
 }
 function localMarks() { try { return JSON.parse(localStorage.getItem(markKey) || "[]"); } catch (e) { return []; } }
 async function loadMarks() {
@@ -1842,78 +1859,219 @@ async function loadMarks() {
     try { const r = await fetch("../local/marks.jsonl", { cache: "no-store" }); if (r.ok) lines = (await r.text()).split("\n").filter(Boolean).map(l => JSON.parse(l)); } catch (e) {}
   }
   MARKS = foldMarks(lines.concat(localMarks().map(m => Object.assign({ localOnly: true }, m))));
-  if (L) { markTable(); draw(); }
+  if (MK.edit) { const cur = MARKS.find(q => q.id === MK.edit.id); MARKS = MARKS.filter(q => q.id !== MK.edit.id).concat([Object.assign(cur || {}, MK.edit)]); }
+  if (L) { markTable(); draw(); } markBar();
 }
-async function saveMark(m) {
+// one save of a mark (the whole mark: a later save of the same id replaces it); resolves true when it reached the sessions
+async function postMark(m) {
+  m.rev = new Date().toISOString();
   try {
     const r = await fetch("/marks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(m) });
     if (!r.ok) throw new Error(r.status);
+    return true;
   } catch (e) {
-    m.localOnly = true;
-    try { const a = localMarks(); a.push(m); localStorage.setItem(markKey, JSON.stringify(a)); } catch (err) {}
+    try { const a = localMarks().filter(q => q.id !== m.id); a.push(Object.assign({}, MARKS.find(q => q.id === m.id) || {}, m)); localStorage.setItem(markKey, JSON.stringify(a)); } catch (err) {}
+    return false;
   }
-  MARKS = foldMarks(MARKS.concat([m])); markTable(); draw();
-  const open = levelMarks().filter(x => !x.done).length;
-  notice(m.localOnly ? `⚠ Saved in this browser only (the PC's tools/serve.js did not answer) -- the sessions will not see it yet.`
-    : `✓ Saved: the sessions will see it. ${open} open mark${open === 1 ? "" : "s"} on this level.`, 6000);
+}
+async function saveMark(m) {
+  const ok = await postMark(m); if (!ok) m.localOnly = true;
+  MARKS = foldMarks(MARKS.concat([m])); markTable(); draw(); markBar();
+  return ok;
 }
 const levelMarks = () => L ? MARKS.filter(m => m.level === L.name) : [];
+const markState = m => m.done ? "done" : m.reply ? "replied" : m.seen ? "seen" : markUnsent(m) ? "new" : "sent";
 function markTable() {
-  const el = document.getElementById("marks"), ms = levelMarks();
-  el.innerHTML = (ms.length ? `<table><tr><th>#</th><th>time</th><th>block</th><th>note</th><th></th></tr>` + ms.map((m, i) =>
-    `<tr class="${m.done ? "done" : ""}" data-mark="${esc(m.id)}" style="cursor:pointer" title="go there (done / reopen: in the top bar)"><td>${i + 1}</td><td>${m.t.toFixed(2)} s</td><td>${(m.x / 30).toFixed(1)}</td><td>${esc(m.note)}${m.reply ? `<br><span class="muted">↳ ${esc(m.reply)}</span>` : ""}${m.localOnly ? ` <span class="muted">(this browser only)</span>` : ""}</td>` +
-    `<td class="muted">${m.done ? "done" : ""}</td></tr>`).join("") + `</table>` : `<span class="muted">none yet</span>`) +
-    `<p class="muted">✎ mark (or M), then click the spot in the view and say what should change. Saved to local/marks.jsonl for Claude's next round${ALL[pick.value] && ALL[pick.value].session ? " (goes to the " + esc(ALL[pick.value].session) + " session)" : ""}.</p>`;
-  // a row is clicked (not a button: controls are only at the top): the replay goes there, and the top bar offers done / reopen
-  el.querySelectorAll("tr[data-mark]").forEach(r => r.onclick = () => { const m = MARKS.find(q => q.id === r.dataset.mark); if (!m) return; t = m.t; lastTick = tick(); playing = false; setPlay(); syncSong(); markPick(m); draw(); });
-  markPick(MARKS.find(q => q.id === (markPick.id || "")) || null);
+  const el = document.getElementById("marks"), all = levelMarks(), pt = PART.cur, ms = pt ? all.filter(m => m.t >= pt.t0 - 0.05 && m.t < pt.t1) : all;
+  el.innerHTML = (ms.length ? `<table><tr><th>#</th><th>time</th><th>block</th><th>note</th><th></th></tr>` + ms.map(m =>
+    `<tr class="${m.done ? "done" : ""}" data-mark="${escA(m.id)}" style="cursor:pointer" title="go there and edit it in the marks bar"><td>${all.indexOf(m) + 1}</td><td>${m.t.toFixed(2)} s</td><td>${(m.x / 30).toFixed(1)}</td><td>${m.kind ? `<span class="muted">${esc(m.kind)}:</span> ` : ""}${esc(m.note || "")}${m.stroke ? ` <span class="muted">✍ drawn</span>` : ""}${m.reply ? `<br><span class="muted">↳ ${esc(m.reply)}</span>` : ""}</td>` +
+    `<td class="muted">${markState(m)}</td></tr>`).join("") + `</table>` : `<span class="muted">${pt ? "none in this part" : "none yet"}</span>`) +
+    `<p class="muted">Tap the level to pin a note, or drag on it to draw; type in the marks bar above the level (it saves as you type), then 📨 send.${pt ? " Showing part " + (PART.list.indexOf(pt) + 1) + " only." : ""}</p>`;
+  el.querySelectorAll("tr[data-mark]").forEach(r => r.onclick = () => { const m = MARKS.find(q => q.id === r.dataset.mark); if (m) markOpen(m, true); });
 }
-function markPick(m) {
-  markPick.id = m ? m.id : null;
-  let bar = document.getElementById("markCtx");
-  if (!bar) { bar = document.createElement("div"); bar.id = "markCtx"; bar.className = "cmpbar"; bar.hidden = true; document.getElementById("ctxbar").appendChild(bar); }
-  if (!m) { bar.hidden = true; bar.innerHTML = ""; return; }
-  bar.hidden = false;
-  bar.innerHTML = `<span class="muted">mark at ${m.t.toFixed(2)} s:</span> <b>${esc(String(m.note || "").slice(0, 80))}</b> <button id="markDone">${m.done ? "reopen" : "✓ done"}</button><button id="markClose" title="close">✕</button>`;
-  bar.querySelector("#markDone").onclick = () => saveMark({ id: m.id, done: !m.done, at: new Date().toISOString() });
-  bar.querySelector("#markClose").onclick = () => markPick(null);
-}
+// the old pick-a-mark row is the marks bar now
+function markPick(m) { if (m) markOpen(m, false); }
+const escA = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const markBtn = document.getElementById("markBtn");
-function setMarking(on) { if (on && typeof DRAWM !== "undefined" && DRAWM.on) drawMode(false);   // the board covers the level: marks need it closed
-  marking = on; markBtn.classList.toggle("on", on); cv.classList.toggle("marking", on); if (on) { playing = false; setPlay(); syncSong(); notice("✎ Click the spot in the level that should change (Esc: cancel).", 0); } else { const n = document.getElementById("notice"); if (n && /Click the spot/.test(n.textContent)) n.hidden = true; } }
-addEventListener("keydown", e => { if (e.key === "Escape" && marking) setMarking(false); });
-markBtn.onclick = () => setMarking(!marking);
-addEventListener("keydown", e => { if ((e.key === "m" || e.key === "M") && !typing(e)) setMarking(!marking); });
-cv.addEventListener("click", async e => {
-  if (!marking || !L) return;
-  const r = cv.getBoundingClientRect(), d = DPR();
-  const px = (e.clientX - r.left) * d, py = (e.clientY - r.top) * d;
-  const x = px / scale + camX, y = camY + (groundY - py) / scale;
-  setMarking(false);
-  const ans = await askNote(`What should change here? (block ${(x / 30).toFixed(1)}, ${(tick() / P.TPS).toFixed(2)} s)`, { x: e.clientX, y: e.clientY });
-  if (!ans) return;
-  const note = ans.note;
-  const lv = ALL[pick.value];
-  saveMark({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), level: L.name, file: lv && lv.name === L.name ? lv.file : "", session: lv && lv.session || "", version: lv && lv.version || 0, t: +(tick() / P.TPS).toFixed(3),
-    x: +x.toFixed(1), y: +y.toFixed(1), note: note.trim(), ...(ans.kind ? { kind: ans.kind } : {}), view: look ? "game look" : "schematic", zoom: LS ? +LS.zoom.toFixed(2) : 1, made: new Date().toISOString() });
+function setMarking(on) { if (on) { playing = false; setPlay(); syncSong(); MK.hint = true; markBar(); } }
+markBtn.title = "tap the level to pin a note, drag on it to draw (no mode: it always works)";
+markBtn.onclick = () => setMarking(true);
+// ---- the gesture on the level: tap = pin, drag = drawing ----
+function levelXY(e) { const r = cv.getBoundingClientRect(), d = DPR(), px = (e.clientX - r.left) * d, py = (e.clientY - r.top) * d;
+  return [+(px / scale + camX).toFixed(1), +(camY + (groundY - py) / scale).toFixed(1), px, py]; }
+const markFree = () => L && !SHOOT && !(PLAY && PLAY.on) && !(typeof DRAWM !== "undefined" && DRAWM.on);
+cv.addEventListener("pointerdown", e => {
+  if (!markFree() || e.button > 0) return;
+  if (MK.down) { MK.down = null; MK.live = null; draw(); return; }   // a second finger: a pinch, not a mark
+  MK.down = { id: e.pointerId, x0: e.clientX, y0: e.clientY, pts: [levelXY(e)], drag: false };
+  if (playing) { playing = false; setPlay(); syncSong(); }   // stop where it is: nothing else moves
+  MK.busyAt = Date.now();
 });
+cv.addEventListener("pointermove", e => {
+  const g = MK.down; if (!g || g.id !== e.pointerId) return;
+  if (!g.drag && Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > 8) { g.drag = true; try { cv.setPointerCapture(e.pointerId); } catch (err) {} }
+  if (g.drag) { const p = levelXY(e), q = g.pts[g.pts.length - 1]; if (Math.hypot(p[2] - q[2], p[3] - q[3]) > 3 * DPR()) g.pts.push(p); MK.live = g.pts; draw(); e.preventDefault(); }
+});
+const markUp = e => {
+  const g = MK.down; if (!g || g.id !== e.pointerId) return; MK.down = null; MK.live = null;
+  if (e.type === "pointercancel") { draw(); return; }
+  const [x, y, px, py] = g.pts[0];
+  if (!g.drag) {   // a tap on a pin opens that mark; elsewhere, a new pin
+    const d = DPR(), hit = levelMarks().filter(m => partHas(m)).find(m => Math.hypot(sx(m.x) - px, sy(m.y) - 18 * d - py) < 14 * d || (m.stroke && m.stroke.some(p => Math.hypot(sx(p[0]) - px, sy(p[1]) - py) < 10 * d)));
+    if (hit) { markOpen(hit, false); return; }
+  }
+  const lv = ALL[pick.value], pts = g.drag ? simplify(g.pts.map(p => [p[0], p[1]]), 2 / scale) : null;
+  const cx = pts ? +(pts.reduce((a, p) => a + p[0], 0) / pts.length).toFixed(1) : x, cy = pts ? Math.max(...pts.map(p => p[1])) : y;
+  markOpen({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), level: L.name, file: lv && lv.name === L.name ? lv.file : "", session: lv && lv.session || "",
+    version: lv && lv.version || 0, t: +(tick() / P.TPS).toFixed(3), x: cx, y: +(+cy).toFixed(1), note: "", ...(pts ? { stroke: pts } : {}),
+    ...(PART.cur ? { part: PART.list.indexOf(PART.cur) + 1 } : {}), view: look ? "game look" : "schematic", zoom: LS ? +LS.zoom.toFixed(2) : 1, made: new Date().toISOString(), fresh: true }, false);
+};
+cv.addEventListener("pointerup", markUp); cv.addEventListener("pointercancel", markUp);
+// fewer points for a drawn line (each within tol of the straight line between those kept)
+function simplify(pts, tol) {
+  if (pts.length < 3) return pts.map(p => [+p[0].toFixed(1), +p[1].toFixed(1)]);
+  const keep = new Array(pts.length).fill(false); keep[0] = keep[pts.length - 1] = true;
+  const rec = (a, b) => { let best = -1, bi = -1; const [ax, ay] = pts[a], [bx, by] = pts[b], L2 = Math.hypot(bx - ax, by - ay) || 1;
+    for (let i = a + 1; i < b; i++) { const dd = Math.abs((by - ay) * pts[i][0] - (bx - ax) * pts[i][1] + bx * ay - by * ax) / L2; if (dd > best) { best = dd; bi = i; } }
+    if (best > tol) { keep[bi] = true; rec(a, bi); rec(bi, b); } };
+  rec(0, pts.length - 1);
+  return pts.filter((p, i) => keep[i]).slice(0, 300).map(p => [+p[0].toFixed(1), +p[1].toFixed(1)]);
+}
+// ---- the marks bar: one row above the level, always the same height ----
+function markOpen(m, go) {
+  markClose(true);
+  MK.edit = Object.assign({}, m); MK.st = m.fresh ? "" : markState(m);
+  if (!MARKS.some(q => q.id === m.id)) MARKS = MARKS.concat([MK.edit]); else MARKS = MARKS.map(q => q.id === m.id ? MK.edit : q);
+  if (go) { t = m.t; lastTick = tick(); playing = false; setPlay(); syncSong(); }
+  markBar(); markTable(); draw();
+  const inp = document.getElementById("mkNote"); if (inp) { inp.focus(); try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch (e) {} }
+}
+// close the editor: an empty pin (no note, nothing drawn) is dropped; a pending save goes out now
+function markClose(keepBar) {
+  const m = MK.edit; if (!m) return; MK.edit = null; clearTimeout(MK.saveT);
+  if (m.fresh && !(m.note || "").trim() && !m.kind && !m.stroke) MARKS = MARKS.filter(q => q.id !== m.id);
+  else if (MK.dirty) markSave(m);
+  MK.dirty = false;
+  if (!keepBar) { markBar(); markTable(); draw(); }
+}
+function markChanged(patch) {
+  const m = MK.edit; if (!m) return; Object.assign(m, patch); MK.dirty = true; MK.busyAt = Date.now();
+  MK.st = "…"; markStatus(); clearTimeout(MK.saveT); MK.saveT = setTimeout(() => { if (MK.edit === m) markSave(m); }, 700);
+  markTable(); draw();
+}
+async function markSave(m) {
+  MK.dirty = false; const out = Object.assign({}, m); delete out.fresh; delete out.localOnly; m.fresh = false;
+  const ok = await postMark(out); if (!ok) m.localOnly = true;
+  if (MK.edit === m) { MK.st = ok ? "saved ✓" : (window.GD_PHONE ? "not saved: no database here" : "saved in this browser only (the PC's serve.js did not answer)"); markStatus(); }
+  markBar.count();
+}
+function markStatus() { const s = document.getElementById("mkSt"); if (s) s.textContent = MK.st; }
+// new = never sent, or its note / drawing changed since it was sent
+const markSig = m => JSON.stringify([m.note || "", m.kind || "", m.stroke ? m.stroke.length : 0, m.deleted ? 1 : 0]);
+const markUnsent = m => !m.fresh && ((m.note || "").trim() || m.stroke || m.kind) && m.sentSig !== markSig(m);
+function markBar() {
+  let bar = document.getElementById("markBar");
+  if (!bar) { const ctx = document.getElementById("ctxbar"); if (!ctx) return; bar = document.createElement("div"); bar.id = "markBar"; ctx.insertBefore(bar, ctx.firstChild); }
+  const m = MK.edit;
+  const part = `<select id="mkPart" title="play one part of the level in a loop, and show its marks">${partOptions()}</select>` +
+    `<button id="mkPrev" title="the part before">◀</button><button id="mkNext" title="the next part">▶</button>`;
+  if (m) {
+    const n = levelMarks().indexOf(levelMarks().find(q => q.id === m.id)) + 1;
+    bar.innerHTML = part + `<span class="mkAt">📍${n || ""} · ${m.t.toFixed(2)} s · block ${(m.x / 30).toFixed(1)}${m.stroke ? " · ✍" : ""}</span>` +
+      `<input id="mkNote" type="text" autocomplete="off" placeholder="what should change here?" value="${escA(m.note || "")}">` +
+      `<select id="mkKind" title="what kind of note">${["", "unfair", "awkward", "ugly", "unclear", "other"].map(k => `<option value="${k}"${(m.kind || "") === k ? " selected" : ""}>${k || "kind…"}</option>`).join("")}</select>` +
+      `<button id="mkDel" title="remove this mark">🗑</button><button id="mkOk" title="done typing (Enter)">✓</button><span id="mkSt" class="muted"></span>`;
+    const inp = bar.querySelector("#mkNote");
+    inp.oninput = () => markChanged({ note: inp.value });
+    inp.onkeydown = e => { e.stopPropagation(); if (e.key === "Enter") { e.preventDefault(); markClose(); } if (e.key === "Escape") markClose(); };
+    bar.querySelector("#mkKind").onchange = e => markChanged({ kind: e.target.value });
+    bar.querySelector("#mkDel").onclick = () => { const x = MK.edit; MK.edit = null; clearTimeout(MK.saveT); MARKS = MARKS.filter(q => q.id !== x.id);
+      if (!x.fresh) { postMark({ id: x.id, level: x.level, deleted: true }); try { localStorage.setItem(markKey, JSON.stringify(localMarks().filter(q => q.id !== x.id))); } catch (e) {} }
+      markBar(); markTable(); draw(); };
+    bar.querySelector("#mkOk").onclick = () => markClose();
+    markStatus();
+  } else {
+    const n = markBar.newOnes().length;
+    bar.innerHTML = part + `<span class="muted mkHint">${MK.hint ? "<b>✎ tap the level</b> to pin a note, <b>drag</b> on it to draw" : "✎ tap the level to pin a note · drag to draw"}</span>` +
+      `<button id="mkSend" title="send Claude every mark that is new or changed since you last sent">📨 send${n ? " " + n + " new" : ""}</button><span id="mkSt" class="muted">${escA(MK.sendSt || "")}</span>`;
+    bar.querySelector("#mkSend").onclick = markSend;
+  }
+  bar.querySelector("#mkPart").onchange = e => partPick(+e.target.value);
+  bar.querySelector("#mkPrev").onclick = () => partPick(PART.cur ? PART.list.indexOf(PART.cur) - 1 : PART.list.length - 1);
+  bar.querySelector("#mkNext").onclick = () => partPick(PART.cur ? PART.list.indexOf(PART.cur) + 1 : 0);
+}
+markBar.newOnes = () => MARKS.filter(markUnsent);
+markBar.count = () => { const b = document.getElementById("mkSend"); if (b) { const n = markBar.newOnes().length; b.textContent = "📨 send" + (n ? " " + n + " new" : ""); } };
+// 📨: in the claude.ai app the marks go to Claude as one comment (the page's `comments` capability, tools/web.js); on the PC
+// the sessions already read local/marks.jsonl, so the button only stamps them sent. A send must come from his own tap
+// (WORKBOOKS.md row 5): a refused one says to tap again, never retries by itself.
+async function markSend() {
+  markClose(true); const list = markBar.newOnes(); const say = s => { MK.sendSt = s; const e = document.getElementById("mkSt"); if (e) e.textContent = s; };
+  if (!list.length) { say("nothing new to send"); return; }
+  const CM = window.claude && window.claude.use ? await window.claude.use("comments").catch(() => null) : null;
+  if (CM && CM.sendToClaude) {
+    const byLv = {}; for (const m of list) (byLv[m.level] = byLv[m.level] || []).push(m);
+    const text = Object.keys(byLv).map(lv => `📍 marks on ${lv} (level viewer; full marks in the page's db collection "marks"):\n` + byLv[lv].sort((a, b) => a.t - b.t).map(m =>
+      `- ${m.t.toFixed(2)} s, block ${(m.x / 30).toFixed(1)}, row ${(m.y / 30).toFixed(1)}${m.kind ? " (" + m.kind + ")" : ""}${m.stroke ? " [drawn line, " + m.stroke.length + " points]" : ""}: ${(m.note || "").trim() || "(no note)"} [id ${m.id}]`).join("\n")).join("\n\n");
+    try { const can = CM.canSendToClaude ? await CM.canSendToClaude() : "available";
+      if (can !== "available") { say(can === "no_session" ? "not sent: no Claude session can take it right now" : "not sent here (" + can + ")"); return; }
+      say("sending " + list.length + " …"); await CM.sendToClaude({ anchor: await CM.anchorFor(document.getElementById("markBar")), text: text.slice(0, 4000) }); }
+    catch (x) { say("not sent (" + (x && (x.code || x.message) || x) + "): tap 📨 again in a few seconds"); return; }
+  }
+  const at = new Date().toISOString();
+  for (const m of list) { m.sentSig = markSig(m); m.sentAt = at; const out = Object.assign({}, m); delete out.localOnly; delete out.fresh; await postMark(out); }
+  say(CM && CM.sendToClaude ? `sent ${list.length} to Claude ✓ ${at.slice(11, 16)}` : window.GD_PHONE ? `${list.length} marked sent ✓ (no link to Claude on this page: open it in the Claude app)` : `${list.length} marked sent ✓ (on the PC the sessions read them from local/marks.jsonl)`);
+  markBar.count(); markTable();
+}
+addEventListener("keydown", e => { if (e.key === "Escape" && MK.edit && !typing(e)) markClose(); });
+// ---- parts: one section of the level, played in a loop ----
+function partsOf() {
+  if (!L || !L.path || L.path.length < 2) return [];
+  const len = (L.path.length - 1) / P.TPS, ts = [0];
+  const tOf = x => { const i = L.path.findIndex(s => s.x >= x); return i < 0 ? len : i / P.TPS; };
+  let xs = []; try { xs = playCheckpoints(); } catch (e) {}
+  for (const x of xs) { const tt = tOf(x); if (tt - ts[ts.length - 1] >= 4 && len - tt >= 3) ts.push(tt); }
+  // long stretches with nothing to cut at: every ~10 s
+  const out = []; for (let i = 0; i < ts.length; i++) { const a = ts[i], b = i + 1 < ts.length ? ts[i + 1] : len, n = Math.max(1, Math.round((b - a) / 10));
+    for (let j = 0; j < n; j++) out.push({ t0: a + (b - a) * j / n, t1: a + (b - a) * (j + 1) / n }); }
+  for (const p of out) { const s = L.path[Math.min(L.path.length - 1, Math.round(p.t0 * P.TPS) + 2)]; p.mode = s && s.mode || ""; }
+  return out;
+}
+function partOptions() {
+  if (L && PART.of !== L) { PART.of = L; PART.list = partsOf(); PART.cur = null; }
+  const ms = levelMarks(), cnt = p => ms.filter(m => m.t >= p.t0 - 0.05 && m.t < p.t1).length;
+  return `<option value="-1">whole level${ms.length ? " · " + ms.length + " marks" : ""}</option>` + PART.list.map((p, i) =>
+    `<option value="${i}"${PART.cur === p ? " selected" : ""}>part ${i + 1}: ${p.mode ? p.mode + " " : ""}${p.t0.toFixed(0)}-${p.t1.toFixed(0)} s${cnt(p) ? " · " + cnt(p) + " marks" : ""}</option>`).join("");
+}
+const partHas = m => !PART.cur || (m.t >= PART.cur.t0 - 0.05 && m.t < PART.cur.t1);
+function partPick(i) {
+  PART.cur = i >= 0 && i < PART.list.length ? PART.list[i] : null;
+  if (PART.cur) { t = PART.cur.t0; lastTick = tick(); syncSong(true); }
+  markBar(); markTable(); if (L) draw();
+}
+// the loop: called by frame() while the replay plays
+function partLoop() { if (PART.cur && PART.of === L && t >= PART.cur.t1) { t = PART.cur.t0; lastTick = tick(); syncSong(true); } }
 function drawMarks() {
-  const d = DPR();
-  levelMarks().forEach((m, i) => {
-    const x = sx(m.x), y = sy(m.y);
-    if (x < -20 || x > W + 20) return;
-    ctx.globalAlpha = m.done ? 0.4 : 1;
-    ctx.fillStyle = m.done ? "#9cf5c4" : m.reply ? "#7fd6ff" : "#ffe14d"; ctx.strokeStyle = "#000"; ctx.lineWidth = 2 * d;
+  const d = DPR(), lm = levelMarks();
+  const line = (pts, col, w) => { ctx.strokeStyle = col; ctx.lineWidth = w * d; ctx.lineJoin = ctx.lineCap = "round"; ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(sx(p[0]), sy(p[1])) : ctx.moveTo(sx(p[0]), sy(p[1]))); ctx.stroke(); };
+  lm.forEach((m, i) => {
+    const x = sx(m.x), y = sy(m.y), on = MK.edit && MK.edit.id === m.id;
+    if (!m.stroke && (x < -20 || x > W + 20)) return;
+    ctx.globalAlpha = !partHas(m) ? 0.25 : m.done ? 0.4 : 1;
+    const col = m.done ? "#9cf5c4" : m.reply ? "#7fd6ff" : "#ffe14d";
+    if (m.stroke && m.stroke.length > 1) { line(m.stroke, "rgba(0,0,0,.6)", on ? 7 : 6); line(m.stroke, on ? "#ffffff" : col, on ? 4 : 3); }
+    ctx.fillStyle = on ? "#ffffff" : col; ctx.strokeStyle = "#000"; ctx.lineWidth = 2 * d;
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 7 * d, y - 14 * d); ctx.arc(x, y - 18 * d, 8 * d, Math.PI * 0.8, Math.PI * 2.2); ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.fillStyle = "#000"; ctx.font = `bold ${10 * d}px system-ui`; ctx.textAlign = "center"; ctx.fillText(m.done ? "✓" : String(i + 1), x, y - 14.5 * d); ctx.textAlign = "left";
-    if (Math.abs(tick() / P.TPS - m.t) < 1.5) {
-      const txt = (m.kind && m.kind !== m.note ? m.kind + ": " : "") + m.note + (m.done ? "  (done)" : m.reply ? "  (replied)" : "  (open)");
+    if ((on || Math.abs(tick() / P.TPS - m.t) < 1.5) && (m.note || m.reply)) {
+      const txt = (m.kind && m.kind !== m.note ? m.kind + ": " : "") + (m.note || "") + (m.done ? "  (done)" : m.reply ? "  (replied)" : "");
       ctx.font = `${12 * d}px system-ui`; ctx.fillStyle = "rgba(0,0,0,.75)"; const w = ctx.measureText(txt).width; ctx.fillRect(x + 10 * d, y - 30 * d, w + 10 * d, 18 * d);
       ctx.fillStyle = m.done ? "#9cf5c4" : "#ffe14d"; ctx.fillText(txt, x + 15 * d, y - 17 * d);
       if (m.reply) { const r = "↳ " + m.reply, w2 = ctx.measureText(r).width; ctx.fillStyle = "rgba(0,0,0,.75)"; ctx.fillRect(x + 10 * d, y - 11 * d, w2 + 10 * d, 18 * d); ctx.fillStyle = "#7fd6ff"; ctx.fillText(r, x + 15 * d, y + 2 * d); }
     }
     ctx.globalAlpha = 1;
   });
+  if (MK.live && MK.live.length > 1) line(MK.live.map(p => [p[0], p[1]]), "#ffffff", 3);
 }
 
 // ---------- compare: a frame of the user's recording beside the replay ----------
@@ -2582,6 +2740,7 @@ function frame(now) {
       t = Math.abs(err) > 0.1 ? t + err : t + err * 0.1;
     }
     if (PLAY && PLAY.on) { playFrame(); syncSong(false); draw(); requestAnimationFrame(frame); return; }
+    partLoop();
     const k = tick();
     let clicks = 0, ups = 0; for (const c of L.sol.clicks) if (c.tick > lastTick && c.tick <= k) { if (c.type === "press") clicks++; else if (c.type === "release") ups++; }
     if (k - lastTick < P.TPS / 4) { if (clicks) clickSound("press"); else if (ups) clickSound("release"); } // one click a frame at most, none after a jump
@@ -2612,7 +2771,8 @@ function verWatch(v0) {
     if (!v || !v.commit) return;
     if (stuck(v) && warned !== v.note) { warned = v.note; notice(`⚠ the PC's viewer is not updating (${v.note}): levels pushed since ${v.commit} are not shown here yet`, 0); }
     if (v.commit === v0.commit) return;
-    const busy = (typeof PLAY !== "undefined" && PLAY && PLAY.on) || document.querySelector("textarea:focus, input[type=text]:focus");
+    // never reload under his hands: not while he plays, types, edits a mark or touched the level in the last 3 minutes
+    const busy = (typeof PLAY !== "undefined" && PLAY && PLAY.on) || document.querySelector("textarea:focus, input[type=text]:focus") || MK.edit || MK.down || Date.now() - MK.busyAt < 180e3;
     if (!busy && (document.visibilityState === "visible" || verWatch.hidden)) { try { writeHash(); } catch (e) {} location.reload(); return; }
     if (busy) notice(`newer levels and code on the PC (${v.commit}: ${String(v.subject || "").replace(/</g, "&lt;")}) <button onclick="location.reload()">⟳ reload</button>`, 0);
   }).catch(() => {});
@@ -2745,7 +2905,9 @@ hdrIcons();
 // only in the top ui"): the rows that come and go with the level -- stages, sections, variants, the recording compare's
 // controls, the notice, the PC's task chip -- are moved into the header here; the panels under the level are read-only.
 { const hdr = document.querySelector("header"), ctx = document.createElement("div"); ctx.id = "ctxbar"; hdr.appendChild(ctx);
-  for (const id of ["notice", "stagebar", "secbar", "varbar"]) { const e = document.getElementById(id); if (e) ctx.appendChild(e); }
+  for (const id of ["stagebar", "secbar", "varbar"]) { const e = document.getElementById(id); if (e) ctx.appendChild(e); }
+  // notices go UNDER the level (2026-11-28, "no big flashes no big jumps"): one popping up above it moved the level down
+  { const n = document.getElementById("notice"), v = document.getElementById("views"); if (n && v) v.after(n); }
   const cb = document.querySelector("#cmp .cmpbar"), cmpEl = document.getElementById("cmp");
   if (cb && cmpEl) { ctx.appendChild(cb); const sync = () => { cb.hidden = cmpEl.hidden; }; sync(); new MutationObserver(sync).observe(cmpEl, { attributes: true, attributeFilter: ["hidden"] }); }
   const chip = document.getElementById("taskChip"); if (chip) hdr.insertBefore(chip, document.getElementById("viewBtn")); }
@@ -2770,7 +2932,8 @@ hdrIcons();
   document.querySelectorAll("#viewMenu [data-speed]").forEach(b => b.addEventListener("click", () => setTimeout(sp, 0))); }
 // ?check=controls (tests/top_controls.js, headless): after the level, its runs and stages are on screen (a run picked when
 // there is one), list every control outside the top bar and the overlays, and send it to POST /selfcheck
-const CONTROL_HOMES = "header, #picker, #workBox, #taskBox, #noteBox, [data-overlay]";
+// #notice sits under the level since 2026-11-28 (a row below the level is allowed: CLAUDE.md "Controls never sit on the gameplay view")
+const CONTROL_HOMES = "header, #notice, #picker, #workBox, #taskBox, #noteBox, [data-overlay]";
 function controlsOutsideTop() {
   return [...document.querySelectorAll("button, select, input, textarea, [contenteditable]")].filter(e => !e.closest(CONTROL_HOMES) && e.id !== "scrub" && !(e.type === "file"))
     .map(e => { let p = e.parentElement; while (p && !p.id) p = p.parentElement; return (p ? "#" + p.id + " " : "") + (e.id ? "#" + e.id : e.tagName.toLowerCase() + " \"" + (e.textContent || "").trim().slice(0, 24) + "\""); });
@@ -3339,8 +3502,8 @@ function drawMode(on) {
   for (const id of ["stagebar", "secbar", "varbar"]) { const e = document.getElementById(id); if (on) { e.dataset.drawHid = e.hidden ? "" : "1"; e.hidden = true; } }
   if (on) {
     if (PLAY && PLAY.on) playStop(true); if (marking) setMarking(false); playing = false; setPlay(); syncSong(false);
-    const top = cv.getBoundingClientRect().top + scrollY;
-    cv.style.height = Math.max(320, innerHeight - Math.max(0, top - scrollY) - 4) + "px"; resize();
+    // the level keeps its size and place (Evgeni, 2026-11-28: "no big flashes no big jumps"): the board takes the canvas' box
+    markClose();
     if (!DRAWM.fr) {
       const fr = DRAWM.fr = document.createElement("iframe"); fr.id = "drawFrame"; fr.title = "the whiteboard";
       fr.src = "draw.html?embed=1" + (MUTED ? "&mute=1" : "") + (TESTPAGE ? "&test=1" : ""); fr.setAttribute("allowtransparency", "true");
@@ -3349,14 +3512,14 @@ function drawMode(on) {
       setTimeout(() => { let up = false; try { up = !!fr.contentWindow.DRAW; } catch (e) {}
         if (!up && DRAWM.on) notice("The board did not open here (this page may not allow it). The whiteboard also works as a page of its own.", 8000); }, 6000);
     }
-    DRAWM.fr.style.top = cv.offsetTop + "px"; DRAWM.fr.style.height = cv.style.height; DRAWM.fr.hidden = false;
+    DRAWM.fr.style.top = cv.offsetTop + "px"; DRAWM.fr.style.height = cv.getBoundingClientRect().height + "px"; DRAWM.fr.hidden = false;
     // opening the board keeps the level on screen (Evgeni, 2026-11-25: "when i move to drawing it switches"): the last
     // sketch comes back only when nothing else is open; drawing a stroke then shows the sketch, as before
     if (DRAWM.lv && !L) BOARDHOST.setLevel(DRAWM.lv.name, DRAWM.lv.levelStr, DRAWM.lv.saved, DRAWM.lv.song);
     if (DRAWM.last) BOARDHOST.view(DRAWM.last.V, DRAWM.last.rect, DRAWM.last.Hb);
     try { DRAWM.fr.contentWindow.focus(); } catch (e) {}
   } else {
-    if (DRAWM.fr) DRAWM.fr.hidden = true; MAPCAM = null; cv.style.height = ""; resize();
+    if (DRAWM.fr) DRAWM.fr.hidden = true; MAPCAM = null;
     if (L) draw();   // closing the board keeps what is on screen too
   }
 }
