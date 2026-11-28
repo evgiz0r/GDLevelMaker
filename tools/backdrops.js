@@ -39,18 +39,21 @@ const PIECES = {
     return out; },
   rays: (x0, x1, C, o) => K.lightRays(x0, x1, { ch: C.glow, z: "B2", every: 140, seed: o.seed, y: 430 }),
   motes: (x0, x1, C, o) => K.motes(x0, x1, { ch: C.light, z: "B2", density: 1.5, y0: 30, y1: 380, sMax: 0.6, seed: o.seed }),
-  horizon: (x0, x1, C) => K.horizonGlow(x0, x1, { ch: C.glow, h: 5, z: "B5" }),
+  // low and soft (Evgeni 2026-11-28, Hellgate card col 79: "background hides the gameplay"): at h 5 the glow rose 150 units,
+  // a bright band right behind the structures and the jump marks (tools/roles.js markBack / hazardBack flag it now)
+  horizon: (x0, x1, C) => K.horizonGlow(x0, x1, { ch: C.glow, h: 2.5, z: "B5" }),
   rocks: (x0, x1, C, o) => K.rocks(x0, x1, { ch: C.far, z: "B4", seed: o.seed }),
 };
 
 // the channels' colours from a palette (tools/blockdesigns.js roles) and a sky. Everything behind the play stays in the
 // SKY's hue, a few steps lighter than the sky, never toward the blocks' colour (Evgeni 2026-11-27: "the background and
 // the blocks look too alike, they should have some contrast to the blocks and hazards"): far / mid = the sky lifted 12% /
-// 24% toward its own hue at full value, light (stars, windows) = 55%, glow (rays, horizon) = 60%. check() measures it.
+// 24% toward its own hue at full value, light (stars, windows) = 55%, glow (rays, horizon) = 40% (60% lit
+// the band behind the play too brightly, 2026-11-28). check() measures it.
 const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 const full = c => { const m = Math.max(1, ...c); return c.map(v => Math.round(v * 255 / m)); };
 function colours(P, sky) { const F = full(sky.bg);
-  return { far: mix(sky.bg, F, 0.12), mid: mix(sky.bg, F, 0.24), light: mix(sky.bg, F, 0.55), glow: mix(sky.bg, F, 0.6) }; }
+  return { far: mix(sky.bg, F, 0.12), mid: mix(sky.bg, F, 0.24), light: mix(sky.bg, F, 0.55), glow: mix(sky.bg, F, 0.4) }; }
 // contrast of a theme's sky and backdrop against its blocks and hazards: WCAG luminance ratio (tools/contrast.js) and
 // hue apart (degrees). Rules: block body vs sky ratio >= 1.5 or hue >= 60 apart with ratio >= 1.25; the backdrop's mid
 // tone the same vs the block body; the hazard's main colour (palette line) vs sky ratio >= 2. Returns the failures.

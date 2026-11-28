@@ -25,7 +25,7 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const ROOT = path.join(__dirname, ".."), LOOK = require("../lib/look.js").LOOK, O = require("../lib/objects.js");
 const C = require("./contrast.js");
-const LIM = { pathBg: 1.4, pathDeco: 1.35, hazardPath: 1.3, hazardDeco: 1.5, hazardBg: 1.6 };
+const LIM = { pathBg: 1.4, pathDeco: 1.35, hazardPath: 1.3, hazardDeco: 1.5, hazardBg: 1.6, hazardBack: 1.6, markBack: 1.6 };
 const AREA = { pathDeco: 0.5, hazardDeco: 0.3 };
 
 let CAT = null;
@@ -143,6 +143,24 @@ function measure(L) {
       const hitH = HC.find(([h, cs]) => touch(d, h, ds) && lostIn(cs, dc, LIM.hazardDeco));
       if (hitH) { const hc = hitH[1][hitH[1].length - 1]; const p = worse("hazardDeco", C.ratio(dc, hc), dc, hc, { x: d.x, y: d.y, id: d.id }); p.area += area; }
     }
+    // WHAT IS REALLY BEHIND (Evgeni 2026-11-28, Hellgate card col 79: "background hides the gameplay"): a backdrop piece on
+    // the back layers (key 24 below T1: mountains, skyline, glows) sits between the sky and the play, so a hazard or a jump
+    // indicator is judged against the top-most back piece covering it, not only against the sky. Before this, the
+    // indicators on the Hellgate card (rgb 64,43,100) sat on a mountain of rgb 62,27,69 and nothing flagged it.
+    const back = D.filter(d => { const z = +((d.props || {})[24]); return (d.props || {})[24] != null && z < 5 && (d.props || {})[21] != null && !massAt(d.x, d.y); });
+    const backAt = (x, y) => { let top = null, tz = -1e9;
+      for (const d of back) { const ds = size(d); if (Math.abs(d.x - x) > ds.w / 2 || Math.abs(d.y - y) > ds.h / 2) continue;
+        const z = +d.props[24] * 1000 + (+d.props[25] || 0); if (z > tz) { tz = z; top = d; } }
+      return top ? colourOf(top) : null; };
+    for (const [h, hs] of HC) { const b = backAt(h.x, h.y);
+      if (b && !same(b, bgR) && lostIn(hs, b, LIM.hazardBack)) worse("hazardBack", Math.max(...hs.map(c => C.ratio(c, b))), hs[hs.length - 1], b, { x: h.x, y: h.y }).bad = true; }
+    // jump indicators: the arrow ids, and every piece in the indicator group (decorate.js INDICATOR: group 990, faded to
+    // its alpha by a trigger, so the mark shows as its colour mixed into what is behind it)
+    const IND = require("./decorate.js").INDICATOR || { group: 990, alpha: 0.45 };
+    const inInd = o => String((o.props || {})[57] || "").split(".").includes(String(IND.group));
+    for (const m of objs.filter(o => o.x >= x0 && o.x < x0 + 300 && o.id !== 914 && (LOOK.isMark(o.id) || inInd(o)))) {
+      const b = backAt(m.x, m.y) || bgR, a = inInd(m) ? IND.alpha : 1, mc = R(colourOf(m).map((v, i) => b[i] + (v - b[i]) * a));
+      if (similar(mc, b, LIM.markBack)) worse("markBack", C.ratio(mc, b), mc, b, { x: m.x, y: m.y }).bad = true; }
     for (const [h, hs] of HC) {
       if (lostIn(hs, bgR, LIM.hazardBg)) worse("hazardBg", Math.max(...hs.map(c => C.ratio(c, bgR))), hs[hs.length - 1], bgR, { x: h.x, y: h.y }).bad = true;
       for (const [b, bs] of SC) if (Math.abs(b.x - h.x) <= 31 && Math.abs(b.y - h.y) <= 31) {
