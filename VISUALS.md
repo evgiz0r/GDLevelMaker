@@ -304,6 +304,12 @@ ground line with `tools/track.py --rows`. Source: Hexagon Force, recording 2026-
 | block outlines | white with a soft glow | thin white | open |
 | death burst | GDLM 60's 48 % death, video 492.55 s (level_t + the sim's death tick): white disc with a blue glow 1.2 -> 2.6 blocks in 0.25 s, then 2-3 offset thin rings to ~3.7 blocks, gone by 0.7 s; shards in the player's colour; small square sparks | "✖ died on a spike" only | fixed: drawn on top at the death, on the wall clock while the replay rests there; picture local/shots/rvg/death_compare.png |
 
+Layer order (2026-11-28, Evgeni's Hellgate card: "some objects don't have the 3D"): both renderers draw deco by GD's
+z-layer (key 24: B5 -5 .. B1 3, T1 5 ..; then key 25), never in file order. The no-art branch (cloud cards, the phone)
+had drawn back deco in file order, so a B5 backdrop slab covered a structure's B1 3D faces; the GD-art branch also culled
+wide scaled strips by their centre. `node tests/zorder_deco.js` renders a B1 strip under a later B5 slab and fails if
+it is covered.
+
 ## Camera (measured on the user's GDLM 68 camera-lab run, 2026-11-24)
 
 The vertical camera is one copy, `lib/camera.js`, used by the viewer. `tools/camfit.js` checks it against a recording.

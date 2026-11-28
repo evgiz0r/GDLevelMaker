@@ -137,8 +137,12 @@ function draw(conns, C, o = {}) {
   // block hangs from its own chain behind the front one
   if (o.depth && style !== "brick") out.push(...draw(conns.map(q => Object.assign({}, q, { x0: q.x0 + o.depth, x1: q.x1 + o.depth, y0: q.y0 + o.depth, y1: q.y1 + o.depth })), C, { style, value: v * 0.55, zo: 0 }));
   const hsv = k => `0a1a${(v * k).toFixed(2)}a0a0`;
-  for (const q of conns) {
-    const vert = q.x0 === q.x1, len = vert ? q.y1 - q.y0 : q.x1 - q.x0, cx = (q.x0 + q.x1) / 2, cy = (q.y0 + q.y1) / 2, rot = vert ? 0 : 90;
+  for (const q0 of conns) {
+    // ENDS TUCKED IN (Evgeni 2026-11-28, hellgate card col 8: "the connection of the ropes to structures is not complete"):
+    // a chain's links sat at (k + 0.5) / n of its length, so its last link stopped half a link short of the block, and a
+    // bridge ended on the block's edge with a gap the eye reads as "not tied". Each attached end now goes INTO the
+    // structure by TUCK units (the play block is drawn over B1 deco, so the overlap is hidden) and the links run end to end.
+    const q = tuck(q0), vert = q.x0 === q.x1, len = vert ? q.y1 - q.y0 : q.x1 - q.x0, cx = (q.x0 + q.x1) / 2, cy = (q.y0 + q.y1) / 2, rot = vert ? 0 : 90;
     // the fitting at the structure: a small plate on the attached end(s)
     const ends = q.kind === "hang" ? [[q.x0, q.y0]] : q.kind === "stand" ? [[q.x0, q.y1]] : [[q.x0, q.y0], [q.x1, q.y1]];
     // a soft holder's shadow line for 3D sections: the same line pushed back, darker
@@ -146,8 +150,8 @@ function draw(conns, C, o = {}) {
       put(211, cx, cy, { ch: C.line, sx: vert ? 0.07 : len / 30, sy: vert ? len / 30 : 0.07, hsv: hsv(0.8) });
       for (const [x, y] of ends) put(211, x, y, { ch: C.line, s: 0.2, rot: 45, hsv: hsv(1) });
     } else if (style === "chain") {
-      const n = Math.max(1, Math.round(len / 9));
-      for (let k = 0; k < n; k++) { const t = (k + 0.5) / n, x = vert ? q.x0 : q.x0 + len * t, y = vert ? q.y0 + len * t : q.y0;
+      const n = Math.max(2, Math.round(len / 9) + 1);
+      for (let k = 0; k < n; k++) { const t = k / (n - 1), x = vert ? q.x0 : q.x0 + len * t, y = vert ? q.y0 + len * t : q.y0;
         put(211, x, y, k % 2 ? { ch: C.line, sx: vert ? 0.06 : 0.3, sy: vert ? 0.3 : 0.06, hsv: hsv(0.7) } : { ch: C.line, s: 0.22, rot: 45, hsv: hsv(1) }); }
     } else if (style === "rod") {
       put(211, cx, cy, { ch: C.base, sx: vert ? 0.15 : len / 30, sy: vert ? len / 30 : 0.15, hsv: hsv(0.6) });
@@ -177,10 +181,37 @@ function draw(conns, C, o = {}) {
         put(693, f.x + (f.flipX ? -0.9 : 0.9), f.y + (f.flipY ? 0.9 : -0.9), Object.assign({ ch: C.base, hsv: hsv(0.9), zo: 3, s: 0.94 }, fl));
         put(211, f.x + (f.flipX ? -7.5 : 7.5), f.y, { ch: C.line, sx: 0.5, sy: 0.05, hsv: hsv(0.55), zo: 4 }); }
     } else if (style === "gdchain") {
-      const L = 2.32 * 30 * 0.6, n = Math.max(1, Math.ceil(len / L));
-      for (let k = 0; k < n; k++) { const t = (k + 0.5) / n; put(41, vert ? q.x0 : q.x0 + len * t, vert ? q.y0 + len * t : q.y0, { ch: C.line, s: 0.6, rot, hsv: hsv(1) }); }
+      const L = 2.32 * 30 * 0.6, n = Math.max(1, Math.ceil(len / L)) + 1;
+      for (let k = 0; k < n; k++) { const t = n > 1 ? k / (n - 1) : 0.5; put(41, vert ? q.x0 : q.x0 + len * t, vert ? q.y0 + len * t : q.y0, { ch: C.line, s: 0.6, rot, hsv: hsv(1) }); }
     }
   }
+  return out;
+}
+// the attached end(s) pushed into the structure: hang -> its bottom (y0) down, stand -> its top (y1) up, bridge -> both ends
+const TUCK = 6;
+function tuck(q) {
+  if (q.kind === "hang") return Object.assign({}, q, { y0: q.y0 - TUCK });
+  if (q.kind === "stand") return Object.assign({}, q, { y1: q.y1 + TUCK });
+  if (q.kind === "bridge") return Object.assign({}, q, { x0: q.x0 - TUCK, x1: q.x1 + TUCK });
+  return q;
+}
+// THE CHECK (the AI catching "the ropes don't reach the structure" before Evgeni does): draw each connector alone and
+// measure the gap between its drawn extent and each attached end (hang: the bottom, stand: the top, bridge: both ends).
+// It must reach 3+ units INTO the structure (gap <= -3): an end that only touches the block edge reads as loose once the
+// block's glow and 3D face sit over it. looseEnds(conns, {style}) -> [{i, kind, end, gap}]; `node tests/connect.js` runs it on
+// every style.
+function looseEnds(conns, o = {}) {
+  const out = [], C = { line: 1, base: 2 };
+  conns.forEach((q, i) => {
+    if (o.style === "brick" && q.x0 !== q.x1) return;
+    const objs = draw([q], C, { style: o.style || "chain" }); if (!objs.length) return;
+    const ext = objs.map(x => { const p = x.props || {}, sx = +(p[128] || p[32] || 1), sy = +(p[129] || p[32] || 1), r = Math.abs(x.rot || 0) % 90 === 45 ? Math.SQRT2 : 1;
+      return [x.x - 15 * sx * r, x.x + 15 * sx * r, x.y - 15 * sy * r, x.y + 15 * sy * r]; });
+    const lo = (k) => Math.min(...ext.map(e => e[k])), hi = (k) => Math.max(...ext.map(e => e[k]));
+    const ends = q.kind === "hang" ? [["bottom", lo(2) - q.y0]] : q.kind === "stand" ? [["top", q.y1 - hi(3)]]
+      : q.kind === "bridge" ? [["left", lo(0) - q.x0], ["right", q.x1 - hi(1)]] : [];
+    for (const [end, gap] of ends) if (gap > -3) out.push({ i, kind: q.kind, end, gap: +gap.toFixed(1) });
+  });
   return out;
 }
 // brick pillars' geometry for a set of connectors: per connector {cx, bw, fillets: [{x, y, flipX, flipY}]}. On the cell
@@ -232,7 +263,7 @@ function spec() {
     notes: "Evgeni 2026-11-26: 'something soft like chain/rope/holder/soft extender [...] as if something is holding it'; DECOART.md 'Connected structures'",
     colours: { bg: [10, 14, 30], ground: [4, 6, 14] }, scene: "tools/scenes/holdgallery.js", copies, outro: 76, signature: {}, objects };
 }
-module.exports = { connectors, draw, brickParts, routeCells, STYLES, spec };
+module.exports = { connectors, draw, looseEnds, tuck, TUCK, brickParts, routeCells, STYLES, spec };
 if (require.main === module) {
   const a = process.argv.slice(2), opt = n => { const i = a.indexOf(n); return i >= 0 ? a[i + 1] : null; };
   if (a[0] === "spec") { fs.writeFileSync("specs/lab_holders.json", JSON.stringify(spec(), null, 1) + "\n"); console.log("wrote specs/lab_holders.json"); process.exit(0); }

@@ -388,6 +388,11 @@ without a whole make).
 Hellgate with holders: wip deco-art/gdlm_44_hellgate_held (v1: 12 stand, 8 hang, 3 bridges; before: _islands).
 Open: holders in make.js / the theme kits as a spec key, a check that counts islands without holders.
 
+Ends tucked in (2026-11-28, Evgeni's Hellgate card: "the connection of the ropes to structures is not complete"): a chain's
+links used to sit at (k + 0.5) / n of its length, so the last link only touched the block's edge and read as loose under
+its glow and 3D face. Every attached end now goes `TUCK` (6) units into the structure, links run end to end, and
+`looseEnds(conns, {style})` flags an end that is not 3+ units in (tests/connect.js, a warning from structdeco on a build).
+
 ## The inside of big structures (2026-11-26)
 
 Evgeni, on Hellgate with holders: "the big ones feel very empty inside". The design layers sit within ~15 units of the edge,

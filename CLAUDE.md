@@ -40,6 +40,13 @@ not after it:
   your last round). A new lesson goes in as one line of the checklist in the same commit, and as a
   `make.js`/`score.js` check where possible -- code beats docs. `tools/wip.js` stamps each note
   with the checklist commit it was built against.
+- **Every note he gives also asks: why didn't the AI catch it?** (Evgeni, 2026-11-28: "anything i mention needs to also be
+  thought in whether the judge/solver/whoever could have caught the same (bad view, wrong gameplay, skipped stuff, skipped
+  gameplay ...)"; and "i want to be able and catch those stuff somehow by the AI, not just by me".) For each note, name
+  the check that should have flagged it (judge.js, score.js gates, the solver's secret-way hunt, `tools/gencheck.js` for the
+  section generators, outside.js, the picture checks) and add it or fix its threshold in the same change, then run it on
+  what exists. Reply with which check now catches it and what else it found. A note no tool can catch yet goes in
+  `knowledge/checklist.md` as "not caught by a tool yet: <what>", so the gap is visible.
 - **Every note from the user is a soft rule, not a spot fix.** (The user, 2026-11-23: "i obviously
   want each fix to be somewhat a soft rule. and reapplied across the level and anything in the
   future.") When the user marks one jump, orb or patch, name the family it belongs to (e.g. "a
@@ -147,7 +154,10 @@ things take" below). The tools below still work one by one.
 4. `node tools/install.js levels/<name>.gdlvl` puts it at the top of My Levels (backs the save up first). With the game
    closed it writes the save; **with GD running it goes through the probe mod's install inbox** (mod v0.6.1+, on a menu
    only, keeps the online ID, GD saves it; GEODE.md "Install into a running GD", `node tools/hotinstall.js status|results`);
-   mod not loaded -> it queues it (`tools/install_queue.js`, installed when GD closes). The user plays it
+   mod not loaded -> it queues it (`tools/install_queue.js`, installed when GD closes). **Clearing them out again:**
+   `node tools/uninstall.js --keep "<name>" ... [--dry] [--wait-close]` removes our GDLM levels from My Levels (never a
+   shared one with an online ID, never the user's own; GD closed; save backed up). Evgeni (2026-11-28): keep My Levels
+   clean, "we will install when we need". The user plays it
    and reports. The user's game is GD **2.2091** on Steam (Windows; Steam updated it 2026-10-21 -- older notes say 2.2081) with Geode 6.0.0 (2026-11-25); our probe mod `mods/gdlm-probe` is built with `tools\geode_build.cmd` and installed, and runs (GEODE.md "Building on this PC": Smart App Control blocks the Geode CLI, so `tools/geode_pack.js` packs).
    **Or Claude plays it in the real game (2026-11-25):** `node tools/probe.js play save:<GDLM name> --launch` (GD closed; the
    level must be in the save): the probe mod (GEODE.md "Playback") opens it, presses the saved route on exact ticks, logs every
@@ -544,6 +554,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **`tools/judge.js` -- the judge: Evgeni-style notes pinned to spots** (few clicks in a section, gaps, a corridor too long or
   shaped like an earlier one, no variety, an orb with no reason, too easy), from a level's saved route; `--vs <marks.json>` compares
   them with his marks (tests/judge.js: 11 of his 13 v4 Hellgate marks, `knowledge/judge/`). Run it on every build before he sees it.
+- **Visual judge trial** (knowledge/visual_judge.md): `tools/shoot.js --trail --label` (the route drawn on each frame) + `tools/contactsheet.py` (3x3 sheets) -> a vision model's review; GDLM 78: Haiku and Sonnet each found 3 of Evgeni's 7 picture-visible notes, missed the path bug and indicators; Haiku ~$0.001 a review.
 - **`tools/report.js <level>` -- the judge report** (Evgeni, 2026-11-26: "not too big, with scores"): one short card --
   Layout 0-10 (balance of sections and pieces, modes -- cube share and upside down --, transitions, rests, flow, variety, pacing, clarity, ending; made stricter 2026-11-26 after Evgeni: "the judge seems to be too nice"), difficulty, unfair spots, taste, deco (later), the top 5
   notes; `--geo <map>.geo.json` (levelmap.js writes it beside each map) pins the notes on the level map. Run it on every build.
@@ -561,10 +572,13 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   `levelmap.js <level> --pieces <out>` draws a bracket per piece on the level map (where pieces join).
 - **Feel per section (FEEL.md): `tools/feel.js <song> [--tier T] [--plan out.plan.json --theme kit]`** -- speed portal, clicks a second, beat-matching (brickpick `hitWeight`), shape and look per section from the song (drops faster / denser / on the hits, breaks calmer, speed-ups of the music played faster), held in a difficulty budget, neighbours never twins; planbuild reads `section.feel`. The mains measured: `tools/feelstudy.js` -> knowledge/feel_ref.json. Test `node tests/feel.js`.
 - **`tools/songplan.js <song> [--to s]` -- a level's section plan from its song**: cut at the song's transitions (tools/sections.js), a mode per section by its type (break / drop / entry / groove), rests, one upside-down section, cube under ~50% (GDLM 44 v9).
+- **`tools/skippress.js <level> [...]` -- presses you can leave out** (Evgeni 2026-11-28: "if you can just not click and it passes you to the next clicks then thats a skip"): each press dropped (and a flip pair), SKIP when the level still clears; score.js gate "skips" (WARN).
 - **`tools/outside.js <level.gdlvl>` -- a secret way around the structures** (Evgeni 2026-11-28: "be careful for secret ways and skipping the structures (in wave for example)"): the saved route above or below every corridor around it for 0.4 s+; `outsideMap(map, route)` the same on a section map, which typebuild scores seeds down by; test `node tests/outside.js`.
+- **`tools/gencheck.js [type ...] [--seeds 8] [--write]`** -- the AI's own critic of the section generators (Evgeni 2026-11-28: "catch those stuff somehow by the AI, not just by me"): each type over many seeds, its planned presses replayed in real physics -> no plan at all, dies, lazy (clears with no press / held all the way), slideable (most of it slid), low (hugs the ground in a tall piece), unforced clicks or flip pairs, tight windows, sliding, route outside the structures, drawn path vs real, an ending by a hazard; -> knowledge/gencheck.json. Run after every generator change.
 - **`tools/genrating.js` -- Evgeni's 0-10 rating of each section generator** (2026-11-28: "if something is very low it should be used very rarely"): sliders under the catalogue's 🎲 generator (db `genrating`); before a build copy them in (ArtifactData `list` genrating -> a file -> `node tools/genrating.js set <file>` -> knowledge/gen_ratings.json); typebuild picks types by (score/10)^2, unrated = 5, never a hard ban.
 - **`tools/moments.js <level>` -- transition moments** (Evgeni 2026-11-28: a strong beat at a section change must make something happen): `plan` = the orchestrator's events on those beats (typebuild, effects gateShut / riseReveal / slabsFall / cameraBreath), `check` = the judge's "flat transition" (report.js); BUILDING.md "Transition moments", who does what and the knobs; test `node tests/moments.js`.
 - **`tools/typebuild.js <briefs/NN.types.json> --run` -- a level from SECTION TYPES in one command** (no lego): song sections + feel -> a type per section generated fresh (tools/sectiongen.js) and checked alone -> joined with portal walls -> make.js (deco pass with a look per section kind, own sky / backdrop per section, one calm effect each via tools/scenes/typefx.js) -> judge report; BUILDING.md section 0 (GDLM 76).
+- **HELLGATE.md -- GDLM 44, the benchmark level** (our first uploaded one; Evgeni 2026-11-28): the target -- the whole song, gameplay to 176 s, ~40 s of auto (visible, then weird), ~16 s of animation to the ending -- the order of work and where it stands.
 - `tools/mapbeats.py` (beat and bar lines over a levelmap.js picture). `tools/hellgate_build.js` -- GDLM 44 v3's builder: song part + local grid -> sections -> brickpick / fly-path -> specs/44_hellgate.json (+ .plan.json). **`tools/planbuild.js <briefs/NN.plan.json>`** -- the same builder with the section plan as data, for any level (GDLM 73 sunny streets; LEGO.md "The same builder for any level").
 - **Outside sources** (knowledge/external_sources.md): level databases and dumps, creation tools, record and tier lists (Pointercrate, AREDL, GDDL), other AI level makers, with APIs, terms and how each helps.
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
@@ -662,6 +676,8 @@ Confirmed:
   release by a tick, turned portals touch by their turned box, a -53 degree teleport moves the full key 54, a ship slides a
   ceiling slope and is launched off its low end, ship -> UFO keeps a quarter of vy. PHYSICS.md "The user's ToE / ToE2 /
   Hexagon Force / Deadlocked runs".
+- A cube falling past a rising slope's foot (feet more than 10 under the foot's level) is not caught by the slope: it hits
+  the block under it (Evgeni's auto hellgate probe logs, 2026-11-28; PHYSICS.md "A cube falling past a slope's foot").
 - Flipping gravity halves vertical speed (blue orb and ceiling blue pad in the recording move at
   half the decompile's velocity). The decompile's ringJump alone does not show this.
 

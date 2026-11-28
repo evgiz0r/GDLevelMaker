@@ -11,7 +11,7 @@ const { GD } = require("./io.js");
 const DF = require("../lib/difficulty.js");
 const SJ = require("../lib/scenejoin.js");
 const LS = require("./layoutsections.js");
-const { sampleOf } = require("./designthemes.js");
+const { sampleOf, withOffsets } = require("./designthemes.js");
 const { build } = require("./make.js");
 const PORTAL = { cube: "cube portal", ship: "ship portal", wave: "wave portal", ufo: "ufo portal", ball: "ball portal", robot: "robot portal", spider: "spider portal", swing: "swing portal" };
 const RUN = 8;   // run-up columns before the section's join
@@ -25,10 +25,10 @@ function specOf(z) {
   // in the join's gated last column (was: the portal before the join, so a ball rode a tall entry's ramp and died there)
   const a = SJ.join(Object.assign({ mode: "cube" }, flat), { T, w, h, mode: z.mode }), b = SJ.join({ T, w, h }, flat), x0 = RUN + a.n;
   const objects = [];
-  const put = (map, dc) => { for (const [kind, c, r, ex] of sampleOf(map)) objects.push(ex ? [kind, c + dc, r, ex] : [kind, c + dc, r]); };
+  const put = (map, dc, offs) => { for (const [kind, c, r, ex] of withOffsets(sampleOf(map), offs)) objects.push(ex ? [kind, c + dc, r, ex] : [kind, c + dc, r]); };
   // the joins as text maps too, so sampleOf turns their tiles into the same objects
   const mapOf = (tiles, n) => { const g = Array.from({ length: h }, () => Array(n).fill(".")); for (const q of tiles) if (q.r < h && q.c >= 0 && q.c < n) g[h - 1 - q.r][q.c] = q.t; return g.map(l => l.join("")); };
-  put(mapOf(a.tiles, a.n), RUN); put(z.map, x0); put(mapOf(b.tiles, b.n), x0 + w);
+  put(mapOf(a.tiles, a.n), RUN); put(z.map, x0, z.offsets); put(mapOf(b.tiles, b.n), x0 + w);
   // join tiles that lie on the section itself (the wave's slide-safe D cells, lib/scenejoin.js): in its empty cells
   const on = [...a.tiles.filter(q => q.c >= a.n).map(q => ({ t: q.t, c: q.c - a.n, r: q.r })), ...b.tiles.filter(q => q.c < 0).map(q => ({ t: q.t, c: w + q.c, r: q.r }))]
     .filter(q => q.c >= 0 && q.c < w && q.r < h && z.map[h - 1 - q.r][q.c] === ".");
@@ -126,7 +126,7 @@ if (require.main === module) {
 // PRESSES FIRST (Evgeni 2026-11-27: "our generating solves by design and we just patch the timings and search secret ways
 // with the solver"): a generated section that carries its planned presses (z.presses, columns of the player's centre in
 // the section) is played with exactly those taps; ok = the plan alone clears it, else where it dies. No search.
-function planCheck(z) {
+function planCheck(z, opts = {}) {
   if (!z.presses) return { key: z.key, plan: false };
   const S = specOf(z); let level;
   try { level = build(S.spec, "layoutcheck:" + z.key, {}).level; } catch (e) { return { key: z.key, plan: true, ok: false, why: "build failed: " + e.message }; }
@@ -134,8 +134,13 @@ function planCheck(z) {
   // a number is a tap (press, release the next tick); a [press, release] pair is a hold (ship, wave, swing)
   // a plan's tick 0 is the first tick at or past the section's start; a column c is c * 30 / dx ticks on from there
   const T0 = Math.ceil((S.x0 * 30 - p0[0].x) / dx - 1e-9), tk = c => T0 + Math.round(c * 30 / dx), ev = [];
-  for (const q of z.presses) if (Array.isArray(q)) { const a = tk(q[0]); ev.push({ tick: a, type: "press" }, { tick: Math.max(a + 1, tk(q[1])), type: "release" }); } else ev.push(tk(q));
+  // opts.hold: the button held from the section's start to past its end instead of the plan (gencheck's "lazy")
+  if (opts.hold) ev.push({ tick: T0, type: "press" }, { tick: tk(z.map[0].length + 2), type: "release" });
+  else for (const q of z.presses) if (Array.isArray(q)) { const a = tk(q[0]); ev.push({ tick: a, type: "press" }, { tick: Math.max(a + 1, tk(q[1])), type: "release" }); } else ev.push(tk(q));
   const r = GD.run(w, ev), end = r.path[r.path.length - 1];
-  return { key: z.key, plan: true, ok: !!r.done && !r.dead, presses: z.presses.length,
+  // the REAL path of the plan (the catalogue's 〰 line, Evgeni 2026-11-28: "we dont replay once with real physics?"): the
+  // replay's centre in section cells (c across, r up from the ground), every 8 ticks, inside the section
+  const path = []; for (let t = 0, ev8 = opts.every || 8; t < r.path.length; t += ev8) { const c = r.path[t].x / 30 - S.x0; if (c >= -0.5 && c <= z.map[0].length + 0.5) path.push([+c.toFixed(2), +(r.path[t].y / 30 - 0.5).toFixed(2)]); }
+  return { key: z.key, plan: true, ok: !!r.done && !r.dead, presses: z.presses.length, path,
     dieCol: r.dead ? +(end.x / 30 - S.x0).toFixed(1) : undefined, dieRow: r.dead ? +(end.y / 30).toFixed(1) : undefined, why: r.dead ? r.why : undefined }; }
 module.exports = { specOf, check, hashMap, planCheck };

@@ -103,8 +103,19 @@ function colourFor(objects, header) {
   for (const ch of chans) { const c = col[ch]; if (!c) continue; const [h, s, v] = rgbHsv(c), w = s * v;
     sx += Math.cos(h * Math.PI / 180) * w; sy += Math.sin(h * Math.PI / 180) * w; wsum += w; }
   if (!chans.length || wsum / chans.length < 0.15) return { rgb: hsvRgb(190, 0.45, 1), hazardHue: null, why: "hazards have no colour (white / grey): a soft cyan" };
-  const hh = (Math.atan2(sy, sx) * 180 / Math.PI + 360) % 360, h = (hh + 180) % 360;
-  return { rgb: hsvRgb(h, 0.5, 1), hazardHue: Math.round(hh), why: `hazards at hue ${Math.round(hh)}: the opposite hue ${Math.round(h)}, soft` };
+  const hh = (Math.atan2(sy, sx) * 180 / Math.PI + 360) % 360;
+  // AWAY FROM THE SKY TOO (Evgeni 2026-11-28, Hellgate card col 79: "background hides the gameplay"): orange hazards gave
+  // violet marks on a violet sky, lost once faded to the indicator alpha. The sky is this stretch's first colour trigger on
+  // channel 1000 (else the header's); the mark takes the hue at least 90 from the hazards that is farthest from the sky.
+  const skyT = objects.filter(o => o.id === 899 && o.props && +o.props[23] === 1000).sort((a, b) => a.x - b.x)[0];
+  const sky = skyT ? [+skyT.props[7], +skyT.props[8], +skyT.props[9]] : col[1000];
+  const gap = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
+  let h = (hh + 180) % 360, why = `hazards at hue ${Math.round(hh)}: the opposite hue ${Math.round(h)}, soft`;
+  if (sky) { const [sh, ss, sv] = rgbHsv(sky);
+    if (ss > 0.15 && sv > 0.08 && gap(h, sh) < 60) { let best = h, bg = -1;
+      for (let d = -90; d <= 90; d += 15) { const c = (hh + 180 + d + 360) % 360; if (gap(c, hh) >= 90 && gap(c, sh) > bg) { bg = gap(c, sh); best = c; } }
+      h = best; why += `, turned to ${Math.round(h)} (the sky is at ${Math.round(sh)})`; } }
+  return { rgb: hsvRgb(h, 0.5, 1), hazardHue: Math.round(hh), why };
 }
 // put the colour channel in the header and the marks on it (the pieces carry opts.ch, so call before expand, or pass ch)
 // opts.colour: "auto", [r, g, b], or per section [[column, "auto" | [r, g, b]], ...] (design themes: each section's marks
@@ -123,7 +134,7 @@ function applyColour(objects, header, opts = {}) {
   return { header, ch: CH, chAt, rgb: rgbs[0], why: why.join("; ") };
 }
 
-module.exports = { STYLES, expand, styleAt, spec, colourFor, applyColour, CH };
+module.exports = { STYLES, expand, styleAt, spec, colourFor, applyColour, rgbHsv, CH };
 if (require.main === module) {
   const a = process.argv.slice(2);
   if (a[0] === "list") for (const [n, s] of Object.entries(STYLES)) console.log(n.padEnd(16) + s.note);

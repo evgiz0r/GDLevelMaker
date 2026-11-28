@@ -140,7 +140,7 @@ function build(brief, o = {}) {
   const LC = require("./layoutcheck.js"), nSeeds = o.seeds || 6, seed0 = brief.seed || 7;
   // columns: each section ends where its song section ends (joins come out of the section's own length)
   let col = 0, prev = null, prevSpeed = "1x";
-  const parts = [], tiles = [], portals = [], report = [];
+  const parts = [], tiles = [], portals = [], report = [], offsets = {};
   for (const s of secs) {
     const endCol = col + s.secs * BPS[s.speed];
     const beatCols = P * BPS[s.speed];
@@ -190,6 +190,8 @@ function build(brief, o = {}) {
     // right where the cube came out of the wall, block 592; and no input is forced right after a mode change, fairness.js)
     const apron = prev && mode !== prev.mode ? APRON : 0;
     for (const q of cur.T) if (!(q.c < apron && HAZ.has(q.t))) tiles.push({ t: q.t, c: q.c + c0, r: q.r });
+    // the section's sub-block offsets (z.offsets {"c,r": [dx, dy]} units), moved to the level's columns
+    if (z.offsets) for (const k in z.offsets) { const [c, r] = k.split(",").map(Number); offsets[(Math.floor(c0) + c) + "," + r] = z.offsets[k]; }
     parts.push({ i: s.i, sub: s.sub, seed: best.seed, type: s.type, mode, c0: col, c1: c0 + cur.w, look: s.look, b0: s.b0, b1: s.b1, kind: s.kind, speed: s.speed, t0: s.t0, t1: s.t1, floor: SJ.floorEdge(cur.T, 0, "L") });
     report.push(`s${s.i} b${s.b0}-${s.b1} ${s.kind.padEnd(6)} ${s.mode.padEnd(7)} ${s.speed} ${s.type} (${z.name}, ${best.tier || s.tier}) cols ${col.toFixed(0)}-${(c0 + cur.w).toFixed(0)} seed ${best.seed}: ` +
       (best.c.ok ? `${best.c.presses} presses, ${best.c.label}` : best.c.ok === null ? "not checked" : "DOES NOT SOLVE ALONE"));
@@ -218,7 +220,7 @@ function build(brief, o = {}) {
     for (let r = 0; r <= top; r++) if ((r < run.a || r > run.b) && (map[H - 1 - r] === undefined || ".D".includes(map[H - 1 - r][c]))) extra.push(["block", c, r]);
   }
   const objects = ["// built by tools/typebuild.js from section types (tools/sectiongen.js)"];
-  for (const e of require("./designthemes.js").sampleOf(map)) objects.push(e);
+  for (const e of require("./designthemes.js").withOffsets(require("./designthemes.js").sampleOf(map), offsets)) objects.push(e);
   objects.push(...extra);
   // looks: one design theme per look, a look per section, changed only where the look changes
   const looks = brief.looks || { calm: "void", drop: "hellgate", break: "frost" };

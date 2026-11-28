@@ -1,10 +1,11 @@
 // node tests/sectiongen.js -- every section generator (tools/sectiongen.js) returns a map of the asked size in board
+// (verify: false where a test is about the planner itself: make() in node replays every plan, retries seeds and forces taps, ~1-5 s a piece; the plan test keeps it)
 // letters, the same map for the same seed, another for another seed, and a mode + concept (no solves); a type with planned
 // presses is cleared by them alone (sim runs, ~10 s; --quick skips)
 const SG = require("../tools/sectiongen.js");
 let bad = 0; const ok = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); if (!c) bad++; };
 for (const key of SG.KEYS) for (const cols of [20, 75]) for (const tier of ["easy", "harder"]) {
-  const a = SG.make(key, { cols, seed: 3, tier }), b = SG.make(key, { cols, seed: 3, tier }), c = SG.make(key, { cols, seed: 4, tier });
+  const a = SG.make(key, { verify: false, cols, seed: 3, tier }), b = SG.make(key, { verify: false, cols, seed: 3, tier }), c = SG.make(key, { verify: false, cols, seed: 4, tier });
   const rect = a.map.every(l => l.length === cols) && /^[.#/\\7r^voqsGNRYBEJKWHUALP]+$/.test(a.map.join(""));
   ok(rect && a.mode && a.concept && a.map.join() === b.map.join() && (cols < 30 || a.map.join() !== c.map.join()), `${key} ${cols} cols ${tier}`);
 }
@@ -17,7 +18,7 @@ if (!process.argv.includes("--quick")) { const LC = require("../tools/layoutchec
     ok(r.ok, `plan ${key} ${cols}x${rows || "-"} ${tier}: ${z.presses.length} presses` + (r.ok ? "" : ` die col ${r.dieCol} row ${r.dieRow} (${r.why})`)); } }
 // BEATS: with a bpm, the tap types put every planned press on a half beat; fly at least 3/4 of its press and release ends
 { const CPS = 311.58 / 30, hb = CPS * 60 / 140 / 2;
-  for (const key of SG.KEYS) { const z = SG.make(key, { cols: 60, seed: 2, tier: "normal", bpm: 140 }); if (!z.presses) continue;
+  for (const key of SG.KEYS) { const z = SG.make(key, { verify: false, cols: 60, seed: 2, tier: "normal", bpm: 140 }); if (!z.presses) continue;
     const cs = z.presses.flatMap(q => Array.isArray(q) ? q : [q]).filter(c => c < 59), on = cs.filter(c => Math.abs(c / hb - Math.round(c / hb)) < 0.02).length;
     // holds: 3/4 of the ends; orbs (my-mwz2haf0): half (an orb rides the arc of the last one, so a beat is taken only
     // where an arc can carry an orb); the other tap types: every press
@@ -30,7 +31,7 @@ if (!process.argv.includes("--quick")) { const LC = require("../tools/layoutchec
 // every planned press on a note of Back On Track from 20 s, and the plans still clear
 { const { songBeats } = require("../tools/sectionbeats.js"), CPS = 311.58 / 30, beats = songBeats("official_BackOnTrack", 20, 20 + 70 / CPS);
   const LC = require("../tools/layoutcheck.js"), log = console.log;
-  for (const key of ["opencube", "closecube", "staircase", "ball", "my-mwz7nxue"]) { const z = SG.make(key, { cols: 60, seed: 2, tier: "normal", beats });
+  for (const key of ["opencube", "closecube", "staircase", "ball", "my-mwz7nxue"]) { const z = SG.make(key, { verify: false, cols: 60, seed: 2, tier: "normal", beats });
     const on = z.presses.filter(c => beats.some(b => Math.abs(b.t * CPS - c) < 0.03)).length;
     console.log = () => {}; let r; try { r = LC.planCheck(z); } finally { console.log = log; }
     ok(on === z.presses.length && r.ok, `song hits ${key}: ${on}/${z.presses.length} presses on a note` + (r.ok ? "" : ", plan dies")); } }
@@ -38,7 +39,7 @@ if (!process.argv.includes("--quick")) { const LC = require("../tools/layoutchec
 // traced in the page (sectiongen tracePath): it reaches the section's end and stays within 0.35 rows of the real sim's
 // run of the same presses (points next to a jump of a row or more in the sim's path, e.g. a spider's teleport, skipped)
 if (!process.argv.includes("--quick")) { const LC = require("../tools/layoutcheck.js"), { GD } = require("../tools/io.js"), { build } = require("../tools/make.js"), log = console.log;
-  for (const key of SG.KEYS) for (const rows of [undefined, 20]) { const z = SG.make(key, { cols: 60, rows, seed: 1, tier: "normal" }); if (!z.presses) continue;
+  for (const key of SG.KEYS) for (const rows of [undefined, 20]) { const z = SG.make(key, { verify: false, cols: 60, rows, seed: 1, tier: "normal" }); if (!z.presses) continue;
     if (!z.path || !z.path.length) { ok(false, `path ${key}: none`); continue; }
     if (!["cube", "ball", "spider"].includes(z.mode)) { ok(z.path.length > 10, `path ${key}: from its planner, ${z.path.length} points`); continue; }
     console.log = () => {}; let S, level; try { S = LC.specOf(z); level = build(S.spec, "test", {}).level; } finally { console.log = log; }
@@ -53,7 +54,7 @@ if (!process.argv.includes("--quick")) { const LC = require("../tools/layoutchec
 // starting cube)"): over 12 seeds, the floor at column 0 (the height the player comes in at) takes at least 4 heights in
 // a 20-row map for every presses-first type (o.entry sets it)
 for (const key of SG.KEYS) { const hs = new Set(); let pr = false;
-  for (let seed = 1; seed <= 12; seed++) { const z = SG.make(key, { cols: 60, rows: 20, seed, tier: "normal" }), H = z.map.length; if (z.presses) pr = true;
+  for (let seed = 1; seed <= 12; seed++) { const z = SG.make(key, { verify: false, cols: 60, rows: 20, seed, tier: "normal" }), H = z.map.length; if (z.presses) pr = true;
     let f = 0; while (f < H && "#/\\".includes(z.map[H - 1 - f][0])) f++; hs.add(f); }
-  if (pr && key !== "flappy") ok(hs.size >= 4, `entry ${key}: ${hs.size} heights over 12 seeds (${[...hs].sort((a, b) => a - b).join(" ")})`); }
+  if (pr && key !== "flappy" && key !== "entrance") ok(hs.size >= 4, `entry ${key}: ${hs.size} heights over 12 seeds (${[...hs].sort((a, b) => a - b).join(" ")})`); }   // the entrance starts the level: always from the ground
 process.exit(bad ? 1 : 0);

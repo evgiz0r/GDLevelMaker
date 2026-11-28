@@ -127,6 +127,14 @@ not seen in the user's game yet.
   rising floor slope; the sim had let it ride up the slope (its zigzag windows of ~500 ms were
   fake). The 67.5 cut is not measured (between 45: slides, and 90: dies). Slope contact for the
   wave now uses its own 5-wide box, not the cube's 15.
+- OPEN (2026-11-28, GDLM 78 two moons rising, Evgeni: "the wave doesnt slide like this, it dies for us", with a picture
+  of the wave's flat trail on the floor just after its portals): the saved route takes the ship -> wave portal at block
+  143.5 (2x, just after a normal-gravity portal) falling at vy -6.5, lands on the block row's top (y 35) and slides 0.28 s
+  to 147.5 before it presses up; the sim lives, the game kills it. Four more slides of 0.2-0.5 s in that route (161.7,
+  175.9, 192.5, 205.2). Not explained: the GDLM 44 recording above shows a wave sliding on a block top for 3 frames.
+  Candidates: landing on a top while falling from another mode, at 2x, a slide over 3 frames, the floor being a block
+  row rather than the ground. Until a probe log settles it, the generators plan no wave slides (tools/sectiongen.js
+  wavePlan turns a row before any floor or roof) and joins put D blocks at wave portals (lib/scenejoin.js).
 - Design consequence: a wave portal right at a block's end that a cube can land on is a trap --
   the habit (enter the wave without holding) slides into the corner. `tools/press_window.js`
   measured GDLM 44's entrance: press-and-hold from 8 ticks before the portal to 13 after (92 ms)
@@ -823,6 +831,14 @@ Lab v11 log (2026-11-26, same folder, 1057 steps): now matches every tick to the
 - **An upside-down cube that hits the ground hard dies** (no object): a flipped mini cube at vy -13.6, tick 1057. The cut is
   vy < -4, a guess inside GDLM 67's band (~-6 dies, ~-1.7 lives; section "Upside-down cube and the ground")
   (`GDLM_FLIP_GROUND=old`).
+
+## A cube falling past a slope's foot hits the block (2026-11-28, measured)
+Evgeni's GDLM auto theme hellgate attempts (probe logs, steps 1607-1614 and 4201): a cube falling into a pit beside a rising
+45-degree slope (1338 on a block, foot 13-15 units over the cube's feet, the foot point still short of the slope) is NOT
+caught by the slope in GD: it flies into the side of the block under it and dies. The sim drew the slope's line on below the
+foot and lifted the cube onto it. Now (lib/physics.js, floor slope branch): before a rising slope's foot the slope catches
+only feet within LAND (10) of the foot's level; the sim then dies on the game's step 1614. `GDLM_SLOPE_FOOT=old` = the old
+catch. Also seen, not fixed: at a downhill seam of two flipped slopes (x ~3030) the game loses 1.00 unit of x for good.
 
 ## Fidelity: measuring the sim against the user's game (goal: "as close as possible")
 

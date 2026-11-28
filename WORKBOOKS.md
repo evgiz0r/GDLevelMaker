@@ -64,3 +64,12 @@ page, so it writes each generated piece to collection `genroute` (doc id = its g
 〰 path also pings Claude. Claude: ArtifactData list genroute (out_dir) -> `node tools/genroute.js <dir>` -> update each
 doc from the files it writes (state done + route); the page's listener draws it. On every wake in the board thread, check
 for asked docs (a db write is reliable, the ping is not).
+Since 2026-11-28 every piece is queued (with its planned `presses`), and genroute.js adds `real`: the planned clicks
+replayed in real physics (layoutcheck planCheck). The page draws that line instead of the generator's own sketch, which
+can be ~1 row off (Evgeni saw it cross saws). The feedback box under a piece is per GENERATOR: designnotes part
+`genT:<type>` (Evgeni: "the comment should be for the generator, not the specific generation").
+
+**A db snapshot replaces your objects mid-loop (2026-11-28).** The catalogue's 📨 saved each sent mark in a loop; the first
+save's db snapshot rebuilt the MARKS list, so the "sent" stamps set on the old objects were lost for every later mark and
+they were sent again on each tap ("it says sending 4, but it drops only to 3 new"). Keep per-item state that must survive
+a snapshot in a map by id (designs_tab.js `SENTM`) and put it back on the fresh objects, never only on the objects.

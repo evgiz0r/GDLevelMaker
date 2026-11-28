@@ -252,10 +252,16 @@ function depth(st, p, C, d, v) {
   // LIT SIDES (Evgeni 2026-11-27 23:48: "the 3d feels like it has the front and back, but not the sides"): the sweep alone
   // came out nearly as dark as the body, so the top and right faces read as a gap between two outlines. Now the top face is
   // lit (brighter than the body) and the right face is a mid shade, strips stacked along each edge
-  const top = { z: "B1", hsv: `0a1a${Math.min(1.3, v + 0.55).toFixed(2)}a0a0` }, side = { z: "B1", hsv: `0a1a${Math.min(1, v + 0.2).toFixed(2)}a0a0` };
+  // LIT IN THE ACCENT, NOT THE BODY (Evgeni 2026-11-28, hellgate: "some objects dont have the 3d", "missing 3d ... looks like
+  // a hole"): the faces were the body's own colour a little brighter (fire: 92,24,22 -> ~97,25,23), so against a dark sky
+  // they vanished and only the far rim line showed, floating. Now they take the palette's light accent ("inner") dimmed:
+  // the top face clearly lit, the right face a darker step of it -- a warm 3D in fire, a cold one in ice. The bigger cause
+  // was the viewer's no-art renderer drawing back deco in file order (a B5 backdrop over these B1 faces): fixed, and
+  // tests/zorder_deco.js catches it
+  const top = { z: "B1", hsv: `0a1a${(0.55 + 0.1 * v).toFixed(2)}a0a0` }, side = { z: "B1", hsv: `0a1a${(0.3 + 0.1 * v).toFixed(2)}a0a0` };
   for (const k of [d / 3, (2 * d) / 3, d]) {
-    edges(st.S, "E", d / 3 + 0.5).forEach(q => p.rect([q[0] + k, q[1] + k, q[2] + k, q[3] + k], "base", 1, side));
-    edges(st.S, "N", d / 3 + 0.5).forEach(q => p.rect([q[0] + k, q[1] + k, q[2] + k, q[3] + k], "base", 1, top)); }
+    edges(st.S, "E", d / 3 + 0.5).forEach(q => p.rect([q[0] + k, q[1] + k, q[2] + k, q[3] + k], "inner", 1, side));
+    edges(st.S, "N", d / 3 + 0.5).forEach(q => p.rect([q[0] + k, q[1] + k, q[2] + k, q[3] + k], "inner", 1, top)); }
   edges(st.S, "N", LW).forEach(q => p.rect([q[0] + d, q[1] + d, q[2] + d, q[3] + d], "line", 0, rim));
   edges(st.S, "E", LW).forEach(q => p.rect([q[0] + d, q[1] + d, q[2] + d, q[3] + d], "line", 0, rim));
   for (const k of corners(st.S)) if (!k.inner && ((k.dx > 0 && k.dy < 0) || (k.dx < 0 && k.dy > 0))) {

@@ -77,7 +77,11 @@ window.initDesigns = async function (root) {
   const CST = {};
   const WORK = {};   // collection "themework": what Claude is doing about the theme marks (workSection)
   const hm = a => a ? new Date(a).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
-  function stLine(part) {
+  // the status line sits in a wrapper the listeners refresh in place (patchSt), so it shows even while the cursor is in a
+  // box (a full render waits for the focus to leave -- the status of a note he was looking at never appeared, 2026-11-28)
+  const stLine = part => `<div class="stw" data-st="${esc(part)}">${stLine0(part)}</div>`;
+  const patchSt = () => { for (const el of root.querySelectorAll(".stw")) { const h = stLine0(el.dataset.st); if (el.innerHTML !== h) el.innerHTML = h; } };
+  function stLine0(part) {
     const n = NOTES[part], d = DRAW["layout:" + part], s = CST[part];
     const mineN = n && (n.note || "").trim() ? String(n.at || "") : "", mineD = d && d.by !== "claude" && (d.tiles || (d.strokes || []).length) ? String(d.at || "") : "";
     const mine = mineN > mineD ? mineN : mineD;
@@ -103,7 +107,7 @@ window.initDesigns = async function (root) {
     try { if (!DB) throw new Error("saves on the claude.ai page"); n.at = new Date().toISOString();
       await DB.collection("designnotes").doc(k.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set({ part: k, note: n.note || "", sentNote: n.sentNote || "", at: n.at }); NST[k] = "saved"; }
     catch (x) { NST[k] = "not saved: " + (x && (x.code || x.message) || x); }
-    if (st) st.textContent = NST[k]; }
+    if (st) st.textContent = NST[k]; try { patchSt(); } catch (x) {} }
   // claude.ai refuses a send-to-Claude within ~6 s of a key typed in the page ("Not sent to Claude. Your last key or click
   // may not have been meant for this artifact"), so 📨 waits out the typing with a countdown (Evgeni 2026-11-27)
   const HOLD = 8000;
@@ -129,8 +133,12 @@ window.initDesigns = async function (root) {
   const putRev = m => DB.collection("designmarks").doc(m.mid + "-" + Date.now().toString(36)).set(Object.assign({}, m, { at: new Date().toISOString() }));
   const latest = docs => { const by = new Map(); for (const d of docs) { if (!d || !d.mid) continue; const o = by.get(d.mid); if (!o || String(d.at) >= String(o.at)) by.set(d.mid, d); }
     return [...by.values()].filter(d => !d.deleted); };
+  // SENT STAMPS by mark id (Evgeni 2026-11-28: "it says sending 4, but it drops only to 3 new"): the first mark's save
+  // brings a db snapshot that REPLACES the MARKS list, so the stamps set on the old objects were lost for every mark after
+  // the first and they were sent again and again. The stamp now lives here and is put on whatever object is current.
+  const SENTM = {};
   async function saveMark(mid) {
-    const m = MARKS.find(z => z.mid === mid); if (!m) return;
+    const m = MARKS.find(z => z.mid === mid); if (!m) return; if (SENTM[mid]) Object.assign(m, SENTM[mid]);
     if (PEND[mid] !== undefined) m.note = PEND[mid].trim();
     m.at = new Date().toISOString(); const want = m.note;
     const st = root.querySelector(`[data-m="${mid}"] .mst`);
@@ -482,7 +490,7 @@ window.initDesigns = async function (root) {
   const GROUTE = {}, gid = gk => gk.replace(/[^A-Za-z0-9_\-.~:@+]/g, "_");
   async function askRoute(g, ping) { if (!DB || !g || !g.map) return; const gk = genKey(g), id = gid(gk);
     if (!GROUTE[id]) { GROUTE[id] = { state: "asked" };
-      try { await DB.collection("genroute").doc(id).set({ gen: gk, key: g.key, seed: g.seed, cols: g.cols, tier: g.tier, map: g.map, mode: g.mode || "", state: "asked", at: new Date().toISOString() }); } catch (e) { GROUTE[id] = null; } }
+      try { await DB.collection("genroute").doc(id).set({ gen: gk, key: g.key, seed: g.seed, cols: g.cols, tier: g.tier, map: g.map, mode: g.mode || "", presses: g.presses || null, state: "asked", at: new Date().toISOString() }); } catch (e) { GROUTE[id] = null; } }
     if (ping && CM && CM.sendToClaude) { const el = root.querySelector(".gpath"); try { await CM.sendToClaude({ anchor: await CM.anchorFor(el || root), text: "〰 solve the path of " + gk + " (collection genroute)" }); GROUTE[id].pinged = true; } catch (e) { GROUTE[id].pinged = false; } render(); } }
   const genKey = g => "gen:" + g.key + ":" + g.seed + ":" + g.cols + ":" + g.tier + (g.hf && g.hf !== 1 ? ":h" + g.hf : "") + (g.bpm ? ":b" + g.bpm : "") + (g.song ? ":s" + g.song + "@" + g.from : "");
   function generate(f) { const SG = window.SectionGen; if (!SG) return;
@@ -500,7 +508,7 @@ window.initDesigns = async function (root) {
       bo = { beats: song.n.filter(x => x[0] >= from && x[0] <= from + secs).map(x => ({ t: x[0] - from, s: x[1] })) }; if (!bo.beats.length) bo = {}; } }
     else { bpm = +bv; if (bpm) bo = { bpm }; }
     try { let z = SG.make(key, { cols, seed, tier, ...bo }); if (hf !== 1) z = SG.make(key, { cols, seed, tier, ...bo, rows: Math.round(z.map.length * hf) });
-      GENS = { key, cols, tier, seed, hf, bpm, song: song ? song.key : "", from: song ? from : 0, map: z.map, mode: z.mode, concept: z.concept || "", path: z.path || null, presses: z.presses || null }; if (!z.path && !z.presses) askRoute(GENS, false); }
+      GENS = { key, cols, tier, seed, hf, bpm, song: song ? song.key : "", from: song ? from : 0, map: z.map, mode: z.mode, concept: z.concept || "", path: z.path || null, presses: z.presses || null }; askRoute(GENS, false); }
     catch (x) { GENS = { key, cols, tier, seed, err: String(x && x.message || x) }; }
     try { localStorage.setItem("designs-gen", JSON.stringify(GENS)); } catch (e) {} render(); }
   // THE PLANNED PATH, NO SOLVE (Evgeni 2026-11-27: "can we draw the path? now we dont need to solve it right?"): a
@@ -513,7 +521,11 @@ window.initDesigns = async function (root) {
     for (const c of pr) { if (!(c >= 0 && c <= W)) continue; const y = yAt(c);
       out.push(y != null ? `<circle cx="${c.toFixed(2)}" cy="${(H - y - 0.5).toFixed(2)}" r="0.26" fill="#ffe36b" />` : `<line x1="${c.toFixed(2)}" y1="0" x2="${c.toFixed(2)}" y2="${H}" stroke="#ffe36b" stroke-opacity="0.55" stroke-dasharray="0.3 0.3" style="stroke-width:1.5px;vector-effect:non-scaling-stroke" />`); }
     return `<g class="plan" style="pointer-events:none">${out.join("")}</g>`; };
-  const PLANTXT = g => { if (!g) return ""; const n = (g.presses || []).length;
+  // A FAILED GENERATION SAYS SO (Evgeni 2026-11-28, opencube: "it dies, if the generation failed, it should say it (the
+  // path should reach till the end). any failing generation of physics is obviously a bug"): a planned path that stops
+  // short of the piece's end is shown in red as a failed generation, not as a plan
+  const PLANTXT = g => { if (!g) return ""; const n = (g.presses || []).length, W = g.map ? g.map[0].length : 0, end = g.path && g.path.length ? g.path[g.path.length - 1][0] : null;
+    if (end != null && W && end < W - 1.5) return `<span style="color:#ff8a8a">❌ generation failed: the planned path stops at col ${end.toFixed(0)} of ${W} (a generator bug: tools/gencheck.js lists these as "short")</span> · `;
     return g.path ? `<span style="color:#ffb35c">planned path · ${n} presses (solved by design)</span> · ` : n ? `<span style="color:#ffe36b">${n} planned presses (ticks; this type has no drawn path yet)</span> · ` : `<span style="color:#999">no plan: an older shape-first type</span> · `; };
   // ⭐ HOW GOOD IS EACH GENERATOR (Evgeni 2026-11-28: "give me some controller on each of the generators, ill put a scale of
   // how good i think it is. if something is very low it should be used very rarely"): a 0-10 slider per type, saved as it
@@ -521,17 +533,20 @@ window.initDesigns = async function (root) {
   // (tools/genrating.js) and level builds pick types by (score/10)^2 -- unrated counts as 5, a 0-1 is almost never used
   const RATE = {}, RST = {}, RW = s => Math.max(0.02, Math.pow((s == null ? 5 : s) / 10, 2));
   const rateTxt = k => { const r = RATE[k]; return (r ? "" : "not rated · ") + "used " + (x => x >= 0.3 ? x.toFixed(1) : x.toFixed(2))(RW(r && r.score) / RW(5)) + "× as often as an unrated type" + (RST[k] ? " · " + RST[k] : ""); };
-  async function saveRate(k, v) { RATE[k] = { key: k, score: v, at: new Date().toISOString() }; RST[k] = "saving …"; const st = root.querySelector(`.grst[data-k="${CSS.escape(k)}"]`); if (st) st.textContent = rateTxt(k);
+  async function saveRate(k, v) { RATE[k] = { key: k, score: v, at: new Date().toISOString() }; RST[k] = "saving …"; root.querySelectorAll(`.grst[data-k="${CSS.escape(k)}"]`).forEach(st => st.textContent = rateTxt(k));
     try { if (!DB) throw new Error("saves on the claude.ai page"); await DB.collection("genrating").doc(k.replace(/[^A-Za-z0-9_-]/g, "_")).set(RATE[k]); RST[k] = "saved"; }
     catch (x) { RST[k] = "not saved: " + (x && x.message || x); }
-    const st2 = root.querySelector(`.grst[data-k="${CSS.escape(k)}"]`); if (st2) st2.textContent = rateTxt(k); }
+    root.querySelectorAll(`.grst[data-k="${CSS.escape(k)}"]`).forEach(st => st.textContent = rateTxt(k)); }
   function ratePanel(SG, nm) {
-    const rows = SG.KEYS.filter(k => !GEN_HIDDEN.includes(k)).map(k => { const r = RATE[k], v = r ? r.score : 5;
-      return `<div class="lyh" style="padding:2px 8px"><span style="min-width:150px;display:inline-block">${esc(nm(k))}</span>`
+    const rows = SG.KEYS.filter(k => !GEN_HIDDEN.includes(k)).map(k => rateRow(k, nm(k))).join("");
+    return `<div class="lyh">` + FR("grate", "⭐ how good is each generator (0-10: low ones are used rarely in levels)", `<div style="width:100%">${rows}</div>`) + `</div>`; }
+  // one type's slider, also shown right under a generated piece (Evgeni 2026-11-28: "when i watch a layout, i could open
+  // that layout specific score and adjust without seeing all")
+  function rateRow(k, label) { const r = RATE[k], v = r ? r.score : 5;
+      return `<div class="lyh" style="padding:2px 8px"><span style="min-width:150px;display:inline-block">${esc(label)}</span>`
         + `<input class="grate" data-k="${esc(k)}" type="range" min="0" max="10" step="1" value="${v}" style="flex:0 0 160px;width:160px;max-width:160px;padding:0;margin:0${r ? "" : ";opacity:.55"}">`
         + `<b class="grv" data-k="${esc(k)}" style="min-width:22px;display:inline-block;text-align:right">${r ? v : "–"}</b>`
-        + `<span class="ds grst" data-k="${esc(k)}">${esc(rateTxt(k))}</span></div>`; }).join("");
-    return `<div class="lyh">` + FR("grate", "⭐ how good is each generator (0-10: low ones are used rarely in levels)", `<div style="width:100%">${rows}</div>`) + `</div>`; }
+        + `<span class="ds grst" data-k="${esc(k)}">${esc(rateTxt(k))}</span></div>`; }
   function genPanel() { const SG = window.SectionGen; if (!SG) return "";
     const nm = k => ((SECS().find(q => q[0] === "sec:" + k) || [])[1]) || k, g = GENS || { key: SG.KEYS[0], cols: 40, tier: "normal" };
     let out = `<div class="lpn" style="margin-top:14px"><b>🎲 generator</b> · a new section from a type's concept, any length and difficulty · your comment goes to Claude with 📨</div>`
@@ -550,9 +565,10 @@ window.initDesigns = async function (root) {
       out += `<div class="lpn"><b>${esc(nm(GENS.key))}</b> · ${esc(GENS.mode || "")} · ${W} x ${H} · ${esc(GENS.tier)} · seed ${GENS.seed}${GENS.concept ? " · " + esc(GENS.concept) : ""}</div>`
         + `<div class="wide"><svg class="gtiles" viewBox="0 0 ${W} ${H + 0.25}" style="width:${W * cs}px;height:${(H + 0.25) * cs}px;background:#1a1636;display:block;max-width:none">`
         + `<g class="grid">${Array.from({ length: W + 1 }, (_, c) => `<line x1="${c}" y1="0" x2="${c}" y2="${H}" stroke="#ffffff30" style="stroke-width:1px;vector-effect:non-scaling-stroke" />`).join("")}${Array.from({ length: H + 1 }, (_, r) => `<line x1="0" y1="${r}" x2="${W}" y2="${r}" stroke="#ffffff30" style="stroke-width:1px;vector-effect:non-scaling-stroke" />`).join("")}</g>`
-        + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + T.map(z => TILE(z, H)).join("") + PLANSVG(GENS, H, W) + (GR && GR.ok ? ROUTE1(GR, H, W, 0, false) : "") + `</svg></div>`
-        + `<div class="lyh"><button class="gplan${open.gplan === false ? "" : " on"}" title="show or hide the planned path (solved by design, drawn at once)">〰 path</button><button class="gpath" title="the planned path is drawn at once (solved by design); this asks Claude to also solve it, to look for secret ways">〰 solver check</button><button class="guse" title="put this piece in the layout as the ${esc(nm(GENS.key))} section, to see it in the scene and edit it there (the old drawing stays in the history)">✏ use in layout</button><span class="ds">${PLANTXT(GENS)}${!GR ? "solver check not asked yet" : GR.state === "done" ? (GR.ok ? `〰 ${GR.presses} presses · ${esc(GR.label || "")}${(GR.tight || [])[0] ? " · tightest " + GR.tight[0].ms + " ms" : ""}` : `<span style="color:#ff8a8a">❌ does not solve (col ${GR.dieCol}): ${esc(GR.why || "")}</span>`) : "asked Claude" + (GR.pinged === false ? " (the app held the ping back: it is solved at Claude's next look)" : "") + " · the path shows here when solved"}</span></div>`
-        + `<div class="lnr"><input class="lnote" data-n="${esc(gk)}" placeholder="what's good or wrong in this one ..." value="${esc((NOTES[gk] || {}).note || "")}"><span class="ds lnst" data-n="${esc(gk)}">${esc(NST[gk] || "")}</span></div>${stLine(gk)}`; }
+        + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + T.map(z => TILE(z, H)).join("") + PLANSVG(GR && GR.real && GR.real.path ? Object.assign({}, GENS, { path: GR.real.path }) : GENS, H, W) + (GR && GR.ok ? ROUTE1(GR, H, W, 0, false) : "") + `</svg></div>`
+        + `<div class="lyh"><button class="gplan${open.gplan === false ? "" : " on"}" title="show or hide the planned path (solved by design, drawn at once)">〰 path</button><button class="gpath" title="the planned path is drawn at once (solved by design); this asks Claude to also solve it, to look for secret ways">〰 solver check</button><button class="guse" title="put this piece in the layout as the ${esc(nm(GENS.key))} section, to see it in the scene and edit it there (the old drawing stays in the history)">✏ use in layout</button><span class="ds">${PLANTXT(GENS)}${GR && GR.real ? (GR.real.ok ? `<span style="color:#7be38a">✓ path = real physics replay</span> · ` : `<span style="color:#ff8a8a">❌ the planned clicks die in real physics (col ${GR.real.dieCol}): ${esc(GR.real.why || "")}</span> · `) : GENS.presses ? `<span style="color:#999">path is the generator's sketch (can be ~1 row off) until Claude replays it in real physics</span> · ` : ""}${!GR ? "solver check not asked yet" : GR.state === "done" ? (GR.ok ? `〰 ${GR.presses} presses · ${esc(GR.label || "")}${(GR.tight || [])[0] ? " · tightest " + GR.tight[0].ms + " ms" : ""}` : `<span style="color:#ff8a8a">❌ does not solve (col ${GR.dieCol}): ${esc(GR.why || "")}</span>`) : "asked Claude" + (GR.pinged === false ? " (the app held the ping back: it is solved at Claude's next look)" : "") + " · the path shows here when solved"}</span></div>`
+        + rateRow(GENS.key, "⭐ " + nm(GENS.key) + " generator")
+        + (tk => `<div class="lnr"><input class="lnote" data-n="${esc(tk)}" placeholder="feedback on the ${esc(nm(GENS.key))} generator: saves as you type, Claude reads it (no need to send) ..." value="${esc((NOTES[tk] || {}).note || "")}"><span class="ds lnst" data-n="${esc(tk)}">${esc(NST[tk] || "")}</span></div>${stLine(tk)}`)("genT:" + GENS.key); }
     return out; }
   // 📨 sends EVERYTHING new on the page in one message (marks of every theme, layout notes, drawings), whichever 📨 is
   // pressed: the top one beside ⟳, a card's, or ⟳ itself (Evgeni 2026-11-27: a note typed after a send stayed "not sent
@@ -569,6 +585,7 @@ window.initDesigns = async function (root) {
     const fresh = keys.filter(k => DRAW[k] && (DRAW[k].tiles || (DRAW[k].strokes || []).length) && after(DRAW[k]));
     const nts = LPARTS.filter(q => noteUnsent(q[0]) && String((NOTES[q[0]] || {}).at || "") > LAST);
     const nss = Object.values(ADDED).filter(after);
+    for (const k of Object.keys(NOTES)) if (k.startsWith("genT:") && noteUnsent(k) && String(NOTES[k].at || "") > LAST) nts.push([k, "🎲 the " + k.slice(5) + " generator"]);
     for (const k of Object.keys(NOTES)) if (k.startsWith("gen:") && noteUnsent(k) && String(NOTES[k].at || "") > LAST) nts.push([k, "🎲 generated " + k.split(":")[1] + " (seed " + k.split(":")[2] + ", " + k.split(":")[3] + " cols, " + k.split(":")[4] + ")"]);
     return { ms, fresh, nts, nss, n: ms.length + fresh.length + nts.length + nss.length };
   }
@@ -602,8 +619,12 @@ window.initDesigns = async function (root) {
       // 1.5 s after a refusal and the green tap was refused again, Evgeni 2026-11-27: "that green msg doesnt work still")
       lastKey = Date.now(); cue(); return false; }
     LAST = new Date().toISOString(); try { if (DB) await DB.collection("designsend").doc("s-" + Date.now().toString(36)).set({ at: LAST }); } catch (x) {}
-    for (const q of nts) NST[q[0]] = "sent";
-    for (const m of ms) { PEND[m.mid] = noteOf(m); m.sentNote = noteOf(m).trim(); m.sent = new Date().toISOString(); await saveMark(m.mid); }
+    // a sent note keeps its sent text (sentNote), so it reads "sent" after a reload, not "saved, not read" (Evgeni
+    // 2026-11-28: "even when tab turns green its still not sent to claude ... its just saved")
+    for (const q of nts) { const n = NOTES[q[0]]; if (n) { n.sentNote = (n.note || "").trim(); await saveNote(q[0]); } NST[q[0]] = "sent ✓"; }
+    const now = new Date().toISOString();
+    for (const m of ms) { PEND[m.mid] = noteOf(m); SENTM[m.mid] = { sentNote: noteOf(m).trim(), sent: now }; Object.assign(m, SENTM[m.mid]); }
+    for (const m of ms) await saveMark(m.mid);
     say("sent " + n + " to Claude " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })); render(); return true;
   }
   // the top 📨 beside ⟳ (tools/snippets/refresh.html calls window.rfBeforeReload before it reloads)
@@ -843,7 +864,7 @@ window.initDesigns = async function (root) {
     if (e.key === "Enter" && e.target.classList && e.target.classList.contains("lnote")) { e.preventDefault(); clearTimeout(noteT); saveNote(e.target.dataset.n); return; }
     if (e.key === "Enter" && e.target.closest && e.target.closest("[data-m]")) { e.preventDefault(); const row = e.target.closest("[data-m]"); PEND[row.dataset.m] = e.target.value; saveMark(row.dataset.m); return; } if (e.key === "Enter" && e.target.classList.contains("fold-h")) e.target.click(); });
   root.addEventListener("input", e => {
-    if (e.target.classList && e.target.classList.contains("grate")) { const k = e.target.dataset.k, b = root.querySelector(`.grv[data-k="${CSS.escape(k)}"]`); if (b) b.textContent = e.target.value; return; }
+    if (e.target.classList && e.target.classList.contains("grate")) { const k = e.target.dataset.k; root.querySelectorAll(`.grv[data-k="${CSS.escape(k)}"]`).forEach(b => b.textContent = e.target.value); root.querySelectorAll(`.grate[data-k="${CSS.escape(k)}"]`).forEach(i => { if (i !== e.target) { i.value = e.target.value; i.style.opacity = 1; } }); return; }
     if (e.target.classList && e.target.classList.contains("lnote")) { const k = e.target.dataset.n; NOTES[k] = Object.assign(NOTES[k] || {}, { note: e.target.value });
       lastKey = Date.now(); holdSend(); NST[k] = "…"; const st = root.querySelector(`.lnst[data-n="${CSS.escape(k)}"]`); if (st) st.textContent = "…";
       clearTimeout(noteT); noteT = setTimeout(() => saveNote(k), 700); return; }
@@ -897,7 +918,7 @@ window.initDesigns = async function (root) {
     // its default and everything since 14:40 counted as new again. Claude writes a stamp here too ({at, by: "claude"})
     // each time it reads the queue, so what Claude has seen stops counting as new without any send
     if (DB) DB.collection("designsend").onSnapshot(snap => { let m = LAST; for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data() || {})))) { const a = String(d.at || ""); if (a > m) m = a; if (d.by === "claude" && a > LASTC) LASTC = a; }
-      if (m !== LAST) { LAST = m; try { topSend(); } catch (x) {} if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); } }, () => {});
+      if (m !== LAST) { LAST = m; try { topSend(); patchSt(); } catch (x) {} if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); } }, () => {});
     if (DB) DB.collection("genroute").onSnapshot(snap => {
       for (const x of snap.docs) { const d = JSON.parse(JSON.stringify(x.data() || {})); const old = GROUTE[x.id]; GROUTE[x.id] = Object.assign({}, d, old && old.pinged != null ? { pinged: old.pinged } : {}); }
       if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
@@ -912,7 +933,7 @@ window.initDesigns = async function (root) {
       if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
     if (DB) DB.collection("claudestatus").onSnapshot(snap => {
       for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data() || {})))) if (d.part && (!CST[d.part] || String(d.at) > String(CST[d.part].at))) CST[d.part] = d;
-      if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
+      patchSt(); if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
     if (DB) DB.collection("designnotes").onSnapshot(snap => {
       for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data())))) if (d && d.part && (!NOTES[d.part] || !NOTES[d.part].at || String(d.at) > String(NOTES[d.part].at))) {
         const el = document.activeElement; if (el && el.classList && el.classList.contains("lnote") && el.dataset.n === d.part) continue;   // never under his typing
@@ -922,6 +943,7 @@ window.initDesigns = async function (root) {
     if (DB) DB.collection("designmarks").onSnapshot(snap => {
       const local = MARKS.filter(m => MST[m.mid] !== "saved" && !m.seen);
       MARKS = latest(snap.docs.map(d => JSON.parse(JSON.stringify(d.data()))));
+      for (const m of MARKS) if (SENTM[m.mid] && !(m.sent >= SENTM[m.mid].sent)) Object.assign(m, SENTM[m.mid]);
       for (const m of local) if (!MARKS.some(z => z.mid === m.mid)) MARKS.push(m);
       if (!root.contains(document.activeElement) || !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) render();
     }, () => {});

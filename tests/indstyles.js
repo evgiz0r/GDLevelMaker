@@ -19,7 +19,9 @@ console.log("indstyles: ok");
 {
   const K = require("../tools/scenekit.js"), hdr = K.channels("kS38,|,kA4,0", { 5: { rgb: [255, 40, 40] } });
   const red = S.colourFor([{ id: 8, x: 100, y: 15, props: { 21: "5" } }], hdr);
-  assert(red.hazardHue < 15 || red.hazardHue > 345, "red hazards"); assert(red.rgb[2] > red.rgb[0], "a blue-ish mark");
+  assert(red.hazardHue < 15 || red.hazardHue > 345, "red hazards"); assert(red.rgb[0] < Math.max(red.rgb[1], red.rgb[2]), "not a red mark");
+  // ... and away from the sky (the default blue one here): Hellgate's violet marks on a violet sky, 2026-11-28
+  { const h = S.rgbHsv ? S.rgbHsv(red.rgb)[0] : null; if (h != null) assert(Math.min(Math.abs(h - 214), 360 - Math.abs(h - 214)) >= 60, "mark hue " + h + " too near the blue sky"); }
   assert.strictEqual(S.colourFor([{ id: 8, x: 100, y: 15, props: {} }], hdr).hazardHue, null);
   const c = S.applyColour([{ id: 8, x: 100, y: 15, props: { 21: "5" } }], hdr, { colour: "auto" });
   assert.strictEqual(c.ch, S.CH); assert(c.header.includes("_6_" + S.CH));
