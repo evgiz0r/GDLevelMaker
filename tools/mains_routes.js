@@ -3,7 +3,8 @@
 //   hash of the level text it was solved on). tools/mains.js run / replan re-export and push it by themselves.
 // node tools/mains_routes.js import [--force] [--json]   -- (on a new computer, tools/setup.js runs it) reads each main
 //   level from the player's OWN game (tools/gdpaths.js LEVELS), replays the route from git on today's sim and writes
-//   local/official_NN.json (level + route), which the viewer lists under "official". Keeps an existing local file
+//   local/official_NN.json (level + route), which the viewer lists under "official", plus the raw solve
+//   (local/difficulty/NN.json) and the all-coins route (local/official_NN_coins.json) when git has them. Keeps an existing local file
 //   unless --force. A route that no longer clears is still written, as ok:false at its death spot, and listed: fix
 //   with `node tools/mains.js run`. A level with no route is written with no solution (the viewer runs it as a ghost).
 // node tools/mains_routes.js check       -- replays every route in knowledge/mains/routes.json, writes nothing.
@@ -38,6 +39,27 @@ function exportRoutes() {
   require("child_process").execFileSync(process.execPath, [path.join(__dirname, "mains.js"), "export"], { stdio: "inherit", windowsHide: true, cwd: ROOT });
 }
 
+// the raw solve (local/difficulty/NN.json: difficulty.js, balance.js, mains.js status read it) and the all-coins route
+// (local/official_NN_coins.json) from git too, so a new computer has everything mains.js export would write back.
+// Kept when already there (unless force). Returns what it wrote.
+function restoreExtras(n, name, level, r, force) {
+  const out = [], from = "knowledge/mains/routes.json";
+  const rawF = path.join(LOCAL, "difficulty", tag(n) + ".json");
+  if (r.raw && r.raw.events && r.raw.events.length && (force || !fs.existsSync(rawF))) {
+    fs.mkdirSync(path.dirname(rawF), { recursive: true });
+    fs.writeFileSync(rawF, JSON.stringify({ n, ok: !!r.raw.ok, physics: r.raw.physics || null, events: r.raw.events, from }));
+    out.push("raw");
+  }
+  const coinF = path.join(LOCAL, `official_${tag(n)}_coins.json`);
+  if (r.coins && r.coins.events && r.coins.events.length && (force || !fs.existsSync(coinF))) {
+    const p = replay(level, r.coins.events);
+    const solution = p.done ? { ok: true, events: r.coins.events, kind: r.coins.kind } : { ok: false, events: r.coins.events, dieX: p.dieX, why: "route from git dies here on this sim", kind: r.coins.kind };
+    fs.writeFileSync(coinF, JSON.stringify({ n, name, level, solution, physics: p.done ? r.coins.physics : null, from }));
+    out.push(p.done ? "coins" : "coins (dies " + p.pct + "%)");
+  }
+  return out;
+}
+
 // one row per main level; writes local/official_NN.json unless dry
 function importRoutes({ force = false, dry = false, log = console.log } = {}) {
   const R = readJ(FILE), byN = {};
@@ -50,7 +72,7 @@ function importRoutes({ force = false, dry = false, log = console.log } = {}) {
     const level = levelFromGame(n);
     if (!level) { row.state = "no level file"; log(`${tag(n)} ${name}: no ${n}.txt in the game's levels folder`); continue; }
     const have = readJ(dest);
-    if (have && have.solution && !force && !dry) { row.state = "kept"; row.ok = !!have.solution.ok; log(`${tag(n)} ${name}: local route kept (--force to replace)`); continue; }
+    if (have && have.solution && !force && !dry) { row.state = "kept"; row.ok = !!have.solution.ok; if (byN[n]) row.restored = restoreExtras(n, name, level, byN[n], false); log(`${tag(n)} ${name}: local route kept (--force to replace)`); continue; }
     const r = byN[n];
     if (!r) { row.state = "no route";
       if (!dry) fs.writeFileSync(dest, JSON.stringify({ n, name, level, solution: undefined, physics: null }));
@@ -67,7 +89,8 @@ function importRoutes({ force = false, dry = false, log = console.log } = {}) {
     row.kind = kind;
     const solution = p.done ? { ok: true, events, kind } : { ok: false, events, dieX: p.dieX, why: "route from git dies here on this sim", kind };
     if (!dry) fs.writeFileSync(dest, JSON.stringify({ n, name, level, solution, physics: p.done ? r.physics : null, from: "knowledge/mains/routes.json" }));
-    log(`${tag(n)} ${name}: ${p.done ? "clears" + (kind === "raw" ? " (raw solve: the human route dies)" : "") : "DIES at " + p.pct + "%"} (${secs} s)${row.sameLevel ? "" : " -- your game's level differs from the one the route was made on"}${r.physics && phys && r.physics !== phys ? " [route physics " + r.physics + ", sim " + phys + "]" : ""}`);
+    if (!dry) row.restored = restoreExtras(n, name, level, r, force);
+    log(`${tag(n)} ${name}: ${p.done ? "clears" + (kind === "raw" ? " (raw solve: the human route dies)" : "") : "DIES at " + p.pct + "%"} (${secs} s)${row.restored && row.restored.length ? " + " + row.restored.join(", ") : ""}${row.sameLevel ? "" : " -- your game's level differs from the one the route was made on"}${r.physics && phys && r.physics !== phys ? " [route physics " + r.physics + ", sim " + phys + "]" : ""}`);
   }
   if (!dry) try { require("./index_levels.js").buildIndex(); } catch (e) { log("index: " + e.message); }
   return rows;

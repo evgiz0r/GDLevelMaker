@@ -6,8 +6,10 @@
 //   builds the viewer's level list and prints what works, what does not, and what to run next.
 //   Nothing of RobTop's is copied into the repo: it all stays in local/ (gitignored) or is read from the game folder.
 //   --game: the folder that holds Resources/ (on macOS the .app's Contents), when it is not found by itself.
-//   --force: replace main-level routes already in local/. Exit code 0 when the main levels are ready, 1 otherwise.
-const fs = require("fs"), path = require("path");
+//   --force: replace main-level routes already in local/. A shallow git clone is unshallowed once (--no-unshallow: don't).
+//   Then: node tools/rebuild_local.js lists the rest of local/ and how to rebuild it.
+//   Exit code 0 when the main levels are ready, 1 otherwise.
+const fs = require("fs"), path = require("path"), cp = require("child_process");
 const ROOT = path.join(__dirname, "..");
 const args = process.argv.slice(2), opt = k => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : null; };
 const asJson = args.includes("--json");
@@ -23,6 +25,20 @@ const check = (name, ok, detail, fix, needed = true) => {
 const major = +process.versions.node.split(".")[0];
 check("Node.js 18+", major >= 18, "v" + process.versions.node, "install Node.js 18 or newer from nodejs.org");
 if (major < 18) finish();
+
+// 1b. a full git history: the tools stamp caches with the commit that last touched the physics (tools/solutions.js
+// physicsCommit). A shallow clone (git clone --depth 1) reports the newest commit for every file, so every cache in
+// git looks stale and is measured again (the brick windows: 30+ min). Fetch the history once (~6 s on GitHub).
+{ const g = a => cp.spawnSync("git", a, { cwd: ROOT, encoding: "utf8", windowsHide: true });
+  const sh = g(["rev-parse", "--is-shallow-repository"]);
+  if (sh.status !== 0) check("git checkout", false, "not a git checkout (a zip download?)",
+    "clone it with git (git clone https://github.com/evgiz0r/GDWorkbench): the caches in git are keyed by commit", false);
+  else if (sh.stdout.trim() === "true") {
+    if (args.includes("--no-unshallow")) check("full git history", false, "shallow clone", "git fetch --unshallow", false);
+    else { say("     shallow clone: fetching the git history once (git fetch --unshallow)");
+      const f = g(["fetch", "-q", "--unshallow"]);
+      check("full git history", f.status === 0, f.status === 0 ? "fetched" : (f.stderr || "").trim().split("\n")[0], "git fetch --unshallow", false); }
+  } }
 
 // 2. where GD is: flags, else what gdpaths finds; then remember it
 if (opt("--game")) process.env.GD_GAME = path.resolve(opt("--game"));
@@ -59,8 +75,10 @@ if (gp.found.game && !missingLevels.length) {
   const failing = rows.filter(r => r.state === "fails" || (r.state === "kept" && !r.ok)).map(r => r.n);
   const noRoute = rows.filter(r => r.state === "no route").map(r => r.n);
   report.mains = { ready, failing, noRoute, rows };
-  check("main levels playable in the viewer", !failing.length && ready > 0, ready + " of 22 replay to the end",
-    "re-solve the ones that die: node tools/mains.js run " + failing.join(" ") + " (5 s to 40 min each, SETUP.md \"Rebuilding local data\")");
+  check("main levels playable in the viewer", ready > 0, ready + " of 22 replay to the end", "node tools/mains_routes.js check");
+  // a route in git that dies on today's sim: that level replays to the death spot; the rest work (not a setup failure)
+  if (failing.length) check("main levels whose route from git dies", false, failing.join(", ") + " (replay to the death spot)",
+    "re-solve them: node tools/mains.js run " + failing.join(" ") + " (5 s to 40 min each, SETUP.md \"Rebuilding local data\")", false);
   // a level with no route in git (not beaten in our sim yet, e.g. Dash): shown without a replay, not a setup failure
   if (noRoute.length) check("main levels without a route in git", false, noRoute.join(", ") + " (listed without a replay)",
     "not beaten in the sim yet, or routes.json is missing: node tools/difficulty_solve.js all " + noRoute.join(" ") + " (long, see SETUP.md)", false);
@@ -75,7 +93,8 @@ check("viewer level list built", fs.existsSync(path.join(ROOT, "viewer", "levels
 finish();
 function finish() {
   if (asJson) { console.log(JSON.stringify(report, null, 1)); process.exit(report.ok ? 0 : 1); }
-  say(report.ok ? "\nREADY. Next: node tools/serve.js  then open http://localhost:8765/viewer/ (main levels are under \"official\")."
+  say(report.ok ? "\nREADY. Next: node tools/serve.js  then open http://localhost:8765/viewer/ (main levels are under \"official\").\n" +
+      "The rest of local/ (bricks, gdsolver plans, videos, ...): node tools/rebuild_local.js (--quick rebuilds the fast ones)."
                 : "\nNOT READY: fix the FAIL lines above and run node tools/setup.js again.");
   process.exit(report.ok ? 0 : 1);
 }
