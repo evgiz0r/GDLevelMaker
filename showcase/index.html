@@ -4,9 +4,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-/* VOICE occasion: a poster for a level, then a quiet tour of the workshop
-   IDEA the page is a run through a level: the first screen is the level, each section is the next part of the run
-   PICTURE Hellgate's own frame, full width; later the route map, generated sections drawn from their data, the mains ladder
+/* VOICE occasion: an invitation to a workshop, warm and confident, not a sales page
+   IDEA a workbench tour: each tool on its own bench row, a real screenshot beside two lines of what it does
+   PICTURE the hero is the person with the Claude wand (our end sign); then the tools' own screens
    COLOUR plum night #1a0d1c, ember orange #ff9a3c, magenta #d0559a, lime player #b8ff3a as the one sharp accent
    TYPE Lilita One (game lettering) + Inter
    LAYOUT laptop: frame full-bleed with title in its lower-left corner; phone: frame, title, buttons stacked */
@@ -91,106 +91,98 @@ button,.btn,[role=button],select,summary,input[type=button],input[type=submit]{t
 button:hover:not(:disabled),.btn:hover,[role=button]:hover,select:hover,summary:hover,input[type=button]:hover,input[type=submit]:hover{filter:brightness(1.18);box-shadow:0 0 0 2px rgba(120,170,255,.35);cursor:pointer}
 button:active:not(:disabled),.btn:active,[role=button]:active{transform:translateY(1px);filter:brightness(.95)}
 @media(max-width:600px){table{font-size:13px}th,td{padding:6px 4px}}
-</style>
 
-<header class="hero">
-  <img src="img/hero.jpg" alt="Hellgate: a UFO threading orange-lit towers with spikes on a plum night sky">
-  <div class="cap"><div class="wrap">
-    <h1>Hellgate, made by a human with Claude</h1>
-    <p>A Geometry Dash level written by Claude, checked by its own physics sim, judged, and played in the real game. In GD: search <b class="id">152848491</b>.</p>
-    <div class="ctas">
-      <a class="btn main" href="#hellgate">See how it was built</a>
-      <a class="btn" href="https://evgiz0r.github.io/GDWorkbench/">Watch levels in your browser</a>
-      <a class="btn" href="https://github.com/evgiz0r/GDWorkbench">Source on GitHub</a>
-    </div>
-  </div></div>
+.hero2{background:radial-gradient(120% 90% at 85% 40%,#4a1a45 0%,var(--bg) 60%);margin-top:calc(-1*env(safe-area-inset-top,0px));padding-top:calc(env(safe-area-inset-top,0px) + clamp(28px,5vw,64px))}
+.hero2 .wrap{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:clamp(20px,4vw,56px);align-items:center}
+.hero2 h1{font-size:clamp(40px,5.6vw,68px)}
+.hero2 p{font-size:18px;max-width:52ch;margin:.6em 0 1.2em}
+.hero2 .sign{border-radius:18px;width:100%;max-width:420px;justify-self:end;box-shadow:0 0 0 1px var(--line)}
+@media(max-width:760px){.hero2 .wrap{grid-template-columns:1fr}.hero2 .sign{justify-self:start;max-width:300px}}
+.tool{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:clamp(18px,3vw,40px);align-items:center;padding-block:22px;border-bottom:1px solid var(--line)}
+.tool:last-child{border-bottom:0}
+.tool:nth-child(even) .shot{order:2}
+.tool .shot img{display:block;width:100%;border-radius:12px;border:1px solid var(--line)}
+.tool h3{font-size:clamp(24px,2.6vw,32px);color:var(--ink);margin-bottom:8px}
+.tool p{color:var(--mute);margin:0 0 8px}
+.tool .cmd{font:13px/1.4 ui-monospace,Menlo,monospace;color:var(--ember);overflow-wrap:anywhere}
+@media(max-width:760px){.tool{grid-template-columns:1fr}.tool:nth-child(even) .shot{order:0}}
+.demo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:center}
+@media(max-width:760px){.demo{grid-template-columns:1fr}}
+</style>
+<header class="hero2 band">
+ <div class="wrap">
+  <div>
+   <h1>A workbench for Geometry Dash, outside the editor</h1>
+   <p>You bring the idea, the song and the taste. Claude builds the layout, proves it can be beaten, explains what's hard and dresses it in a theme. You play it, mark what's off, and it gets better.</p>
+   <div class="ctas">
+    <a class="btn main" href="#tools">See the tools</a>
+    <a class="btn" href="https://evgiz0r.github.io/GDWorkbench/">Open the viewer</a>
+    <a class="btn" href="https://github.com/evgiz0r/GDWorkbench">Source on GitHub</a>
+   </div>
+  </div>
+  <img class="sign" src="img/sign_crop.jpg" alt="A person holding a wand tipped with the Claude spark, under the words made by humans, with Claude">
+ </div>
 </header>
 
-<details class="sec" open data-fold="how"><summary><h2>How a level gets made</h2><span class="k">one command, eight stages</span></summary>
+<details class="sec" open data-fold="how"><summary><h2>From an idea to the game</h2><span class="k">every step is a tool you can steer</span></summary>
 <div class="band"><div class="wrap">
   <div class="steps">
     <div class="step"><b>Song</b><span>beats, hits and drops measured</span></div>
-    <div class="step"><b>Sections</b><span>cut where the music changes</span></div>
+    <div class="step"><b>Plan</b><span>sections cut where the music changes</span></div>
     <div class="step"><b>Presses first</b><span>clicks on the beat, then the blocks</span></div>
     <div class="step"><b>Generators</b><span>15 section types, any length</span></div>
-    <div class="step"><b>Solver</b><span>proves it can be beaten, finds skips</span></div>
+    <div class="step"><b>Solver</b><span>proves it can be beaten, hunts skips</span></div>
     <div class="step"><b>Judge</b><span>layout, difficulty, fairness, taste</span></div>
     <div class="step"><b>Theme</b><span>blocks, spikes, skies, set pieces</span></div>
-    <div class="step"><b>Real game</b><span>a mod replays the route in GD</span></div>
+    <div class="step"><b>Your game</b><span>installed, and replayed in real GD</span></div>
   </div>
 </div></div></details>
 
-<details class="sec" open id="hellgate" data-fold="hellgate"><summary><h2>Hellgate, reviewed</h2><span class="k">our benchmark level</span></summary>
-<div class="band"><div class="wrap two">
-  <div>
-    <p class="lead">The whole level with the solver's route: green cube, orange ball, yellow UFO, pink ship, blue wave. Dots are presses.</p>
-    <div class="map"><img src="img/hellgate_map.jpg" alt="Hellgate's full level map with the solved route drawn by mode"></div>
-  </div>
-  <div class="card">
-    <div class="score"><span class="big">4.1</span><span>/10 layout, by our own judge</span></div>
-    <div class="bars" id="subs"></div>
-    <div class="facts">
-      <div><b>61.7 s</b><small>length</small></div>
-      <div><b>71</b><small>presses</small></div>
-      <div><b>6</b><small>game modes</small></div>
-      <div><b>Normal</b><small>~3 attempts</small></div>
-      <div><b>142 ms</b><small>tightest press</small></div>
-      <div><b>74/100</b><small>taste</small></div>
-    </div>
-    <b>What the judge says</b>
-    <ul class="notes">
-      <li>No unfair spots.</li>
-      <li>Three portals are walked into on the ground (real levels take 93% on the move).</li>
-      <li>Two mode switches come too abruptly after a press.</li>
-      <li>Sections repeat ideas: variety scores 0.</li>
-    </ul>
-    <p class="lead" style="margin-top:14px">Next: the full 231 s song, with 40 s of auto play and an animated ending.</p>
-  </div>
-</div>
-<div class="wrap">
-  <div class="strip">
-    <img src="img/hg_a.jpg" alt="Hellgate opening, cube on fire bricks">
-    <img src="img/hg_b.jpg" alt="Hellgate ball section">
-    <img src="img/hg_c.jpg" alt="Hellgate ship section">
-    <img src="img/sign.jpg" alt="Closing sign: a human holding a wand with the Claude spark, made by humans with Claude">
-  </div>
-  <p class="lead" style="margin-top:14px">Every level ends on the same quiet sign: made by humans, with Claude.</p>
-</div></div></details>
-
-<details class="sec" open data-fold="gen"><summary><h2>Section generators</h2><span class="k">same idea, new layout every time</span></summary>
+<details class="sec" open id="tools" data-fold="tools"><summary><h2>The tools</h2><span class="k">real screens, our own renderer</span></summary>
 <div class="band"><div class="wrap">
-  <p class="lead">Each type is a concept in code, not a copied layout. Pick one: easy, normal and hard come from the same generator. Lime dots are the planned presses.</p>
-  <div class="tabs" id="gtabs"></div>
-  <p class="lead" id="gconcept"></p>
-  <div class="gen" id="gview"></div>
-</div></div></details>
-
-<details class="sec" open data-fold="motion"><summary><h2>In motion</h2><span class="k">replays from our viewer</span></summary>
-<div class="band"><div class="wrap">
-  <div class="anim">
-    <figure style="margin:0"><img src="img/anim_hellgate.webp" alt="Hellgate ship stretch replaying" style="width:100%;border-radius:12px"><figcaption class="lead">Hellgate, the ship stretch</figcaption></figure>
-    <figure style="margin:0"><img src="img/anim_sunny.webp" alt="Sunny Streets replaying" style="width:100%;border-radius:12px"><figcaption class="lead">Sunny Streets</figcaption></figure>
-  </div>
-  <p class="lead">Animated endings too: the gate of Hellgate closes on the beat.</p>
-  <div class="strip">
-    <img src="img/end_0.jpg" alt="The gate arch rises"><img src="img/end_1.jpg" alt="The gate glows open"><img src="img/end_2.jpg" alt="The gate closes"><img src="img/end_3.jpg" alt="Darkness after the gate">
-  </div>
+ <div class="tool"><div class="shot"><img src="img/tool_viewer.jpg" alt="The level viewer replaying a ship corridor, with the hold timeline under it"></div>
+  <div><h3>See any level play</h3><p>Every level replays in the browser with its clicks. Each press shows its timing window, so you see exactly how tight a spot is.</p><p>Play it yourself with practice checkpoints, on PC or phone.</p></div></div>
+ <div class="tool"><div class="shot"><img src="img/tool_beats.jpg" alt="Zoomed-out view with numbered beat lines over an orb section"></div>
+  <div><h3>Mark it like a playtester</h3><p>Zoom out, turn on the song's beats, tap the level to pin a note or drag to draw on it. Notes go straight to Claude, and every note becomes a rule for all future levels.</p></div></div>
+ <div class="tool"><div class="shot"><img src="img/tool_draw.jpg" alt="A freehand zigzag stroke turned into a wave corridor with planned presses"></div>
+  <div><h3>Draw it, roughly</h3><p>Sketch a line on the whiteboard and it becomes a playable piece: here a zigzag turned into a wave corridor, with the presses it needs.</p></div></div>
+ <div class="tool"><div class="shot"><div class="tabs" id="gtabs"></div><div class="gen" id="gview"></div></div>
+  <div><h3>Section generators</h3><p id="gconcept"></p><p>Each type is a concept in code, not a copied layout: any length, any difficulty, on the song's beat. Lime marks are the planned presses.</p></div></div>
+ <div class="tool"><div class="shot"><img src="img/tool_map.jpg" alt="Level map with the solver's route drawn by game mode"></div>
+  <div><h3>The solver's route</h3><p>A physics sim of GD 2.2 plays every level, frame by frame, and draws the route by mode. It flags skips, secret ways around structures and lazy holds.</p><p>Checked against real runs in the game through a small mod.</p></div></div>
+ <div class="tool"><div class="shot"><img src="img/tool_balance.jpg" alt="Difficulty breakdown page: score, attempts, and cost of every press"></div>
+  <div><h3>Difficulty you can read</h3><p>Every press gets a cost: timing, tight flying, gravity, forced inputs. The score lines up with the main levels' stars (0.95) and with a real player's ranking.</p></div></div>
+ <div class="tool"><div class="shot"><div class="card"><div class="score"><span class="big">4.1</span><span>/10 layout · example report</span></div><div class="bars" id="subs"></div></div></div>
+  <div><h3>A judge on every build</h3><p>A short report card: layout sub-scores, difficulty, unfair spots, taste learned from ~330 rated levels, and the top notes pinned to the spot, before a human ever plays it.</p></div></div>
 </div></div></details>
 
 <details class="sec" open data-fold="themes"><summary><h2>Themes and looks</h2><span class="k">one gameplay, many dresses</span></summary>
-<div class="band"><div class="wrap gal" id="gal"></div></div></details>
-
-<details class="sec" data-fold="mains"><summary><h2>Our difficulty model vs the main levels</h2><span class="k">22 official levels</span></summary>
 <div class="band"><div class="wrap">
-  <p class="lead">Our score is fitted on timing windows and flight room. It ranks the main levels close to the in-game stars (0.95) and to a player's own ranking (0.94). The solver beats 19 of 22 in our simulator.</p>
+ <div class="anim" style="margin-bottom:16px">
+  <figure style="margin:0"><img src="img/anim_hellgate.webp" alt="A ship corridor replaying" style="width:100%;border-radius:12px"></figure>
+  <figure style="margin:0"><img src="img/anim_sunny.webp" alt="Sunny Streets replaying" style="width:100%;border-radius:12px"></figure>
+ </div>
+ <div class="gal" id="gal"></div>
+</div></div></details>
+
+<details class="sec" data-fold="mains"><summary><h2>Checked against the main levels</h2><span class="k">22 official levels</span></summary>
+<div class="band"><div class="wrap">
+  <p class="lead">The solver beats 19 of 22 in our simulator. Our difficulty score, beside the in-game stars:</p>
   <div class="scroll"><table id="mains"><thead><tr><th>Level</th><th>Stars</th><th>Our score</th><th style="width:40%"></th><th>Our tier</th><th>Beaten in sim</th></tr></thead><tbody></tbody></table></div>
 </div></div></details>
 
-<details class="sec" data-fold="uses"><summary><h2>What you can ask it</h2><span class="k">from a prompt to the game</span></summary>
+<details class="sec" open data-fold="uses"><summary><h2>What you can ask it</h2><span class="k">in plain words</span></summary>
 <div class="band"><div class="wrap uses" id="uses"></div></div></details>
 
+<details class="sec" open data-fold="demo"><summary><h2>Try one in your game</h2><span class="k">a demo level</span></summary>
+<div class="band"><div class="wrap demo">
+  <img src="img/hero.jpg" alt="A frame of Hellgate" style="width:100%;border-radius:12px">
+  <div><p class="lead" style="color:var(--ink)"><b>Hellgate</b>, our first uploaded level, an early demo of the pipeline. Search <b class="id">152848491</b> in GD.</p>
+  <p class="lead">Every level ends on the same quiet sign: made by humans, with Claude.</p></div>
+</div></div></details>
+
 <footer class="band"><div class="wrap">
-  Unofficial, not affiliated with RobTop Games. Every picture here is drawn by our own renderer, with no game art. Songs are not hosted; Hellgate's song is Infertehno 2 by SOcollab.
+  Unofficial, not affiliated with RobTop Games. Every picture here is drawn by our own renderer, with no game art. Songs are not hosted.
 </div></footer>
 
 <script src="gens.js"></script>
@@ -223,8 +215,8 @@ function drawMap(v){
 const tabs=document.getElementById("gtabs");
 function showGen(i){const g=GENS[i];
   [...tabs.children].forEach((b,j)=>b.setAttribute("aria-pressed",j===i));
-  document.getElementById("gconcept").textContent=g.concept.charAt(0).toUpperCase()+g.concept.slice(1)+".";
-  document.getElementById("gview").innerHTML=g.v.map(v=>`<div class="row"><h3>${esc(v.tier)} · ${esc(v.mode)}</h3>${drawMap(v)}</div>`).join("");
+  document.getElementById("gconcept").textContent=g.name+": "+g.concept+".";
+  document.getElementById("gview").innerHTML=g.v.filter(v=>v.tier!=="normal").map(v=>`<div class="row"><h3>${esc(v.tier)} · ${esc(v.mode)}</h3>${drawMap(v)}</div>`).join("");
   try{localStorage.setItem("sc-gen",i)}catch(e){}}
 tabs.innerHTML=GENS.map((g,i)=>`<button type="button" data-i="${i}">${esc(g.name)}</button>`).join("");
 tabs.addEventListener("click",e=>{const b=e.target.closest("button");if(b)showGen(+b.dataset.i)});
@@ -232,7 +224,7 @@ let gi=4;try{const s=+localStorage.getItem("sc-gen");if(s>=0&&s<GENS.length&&loc
 showGen(gi);
 
 // themes gallery
-const gal=[["th_a","Hellgate: wave zigzag"],["ns_b","Night Shift"],["ss_b","Sunny Streets"],["tm_a","Two Moons Rising"],["th_c","Design theme: ice, hanging pieces"],["th_d","Design theme: ice blue"],["ss_d","Sunny Streets: rooftops"],["ice","Icy part"],["th_e","Design theme: city"],["tm_c","Two Moons Rising: saws"],["th_b","Saw sine section"],["ns_c","Night Shift: ship"],["sd_b","Structure designs"],["spk","Spike and saw designs"],["blk","Block designs"]];
+const gal=[["th_a","Wave zigzag"],["ns_b","Night Shift"],["ss_b","Sunny Streets"],["tm_a","Two Moons Rising"],["th_c","Design theme: ice, hanging pieces"],["th_d","Design theme: ice blue"],["ss_d","Sunny Streets: rooftops"],["sign","The end sign"],["ice","Icy part"],["th_e","Design theme: city"],["tm_c","Two Moons Rising: saws"],["th_b","Saw sine section"],["ns_c","Night Shift: ship"],["sd_b","Structure designs"],["spk","Spike and saw designs"],["blk","Block designs"]];
 document.getElementById("gal").innerHTML=gal.map(([f,c])=>`<figure><img src="img/${f}.jpg" alt="${esc(c)}"><figcaption>${esc(c)}</figcaption></figure>`).join("");
 
 // main levels
