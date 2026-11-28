@@ -307,9 +307,12 @@ GEN.closecube = o => { const { R, mix, W, H, G, style, onBeat, entry } = ctx(o, 
     const h = f[Math.floor(x)];
     // tall maps: head for a far target height; a jump up a row now and then, a walk-off a row down
     let up = false;
-    if (H > 8 && !fl(x) && x - lastStep > 6) { if (tgt == null || tgt === h) tgt = h < hi / 2 ? R.int(Math.ceil(hi / 2), hi) : R.int(0, Math.floor(hi / 2));
-      if (tgt > h && R.chance(0.6)) up = true;
-      else if (tgt < h && R.chance(0.6) && x - settle > 3.5) {   // a walk-off between two presses: the floor drops a row
+    // (over 12 rows the steps come quicker, so a minute-long corridor reaches the far rows: 2026-11-28, Evgeni "try to extend
+    // the generators to use full height when possible"; at 20 rows the floor stayed in rows 2-13)
+    const tallC = H > 12, stepGap = tallC ? 4 : 6, stepP = tallC ? 0.8 : 0.6;
+    if (H > 8 && !fl(x) && x - lastStep > stepGap) { if (tgt == null || tgt === h) tgt = h < hi / 2 ? R.int(Math.ceil(hi / 2), hi) : R.int(0, Math.floor(hi / 2));
+      if (tgt > h && R.chance(stepP)) up = true;
+      else if (tgt < h && R.chance(stepP) && x - settle > 3.5) {   // a walk-off between two presses: the floor drops a row
         const m = Math.ceil(x - 2.2); if (m > settle + 1) { setF(m, h - 1); lastStep = m; const fc = cubeFall((m + 0.5) * 30, 30, 0);
           settle = fc ?? m + 2; x = onBeat(Math.max(x, settle + 1.2), settle + 1); continue; } } }
     // candidates: (kind, size, where), each scored by how far its window is from the target and how off-centre it is
@@ -520,12 +523,14 @@ function flyPlan(o, W, H, R, mix, style, gap, cap = 3.2, onBeat = w => w, run = 
     if (H > 10 && c - lastMover > 4 && c > 3 && c < W - 3) { const r = Math.floor(st.y / 30), nb = clamp(r - 5, 0, H - 10);
       if (nb !== band0 && ((st.vy > 0 && st.y > hi - 75) || (st.vy < 0 && st.y < lo + 75))) { movers.push([Math.floor(c), r]); band0 = nb; lastMover = c; } }
     ys.push(st.y); bands.push(band0); }
+  // a tall map's plan that slides the map's top is drawn again: the roof slopes there caught a ship in a 4-row gap (2026-11-28)
+  if (H > 10 && ys.some(y => y >= top - 16)) return null;
   const e = fitCorridor(ys, bands, W, H, gap, TPC, { m, half: 15, run, g0: b0 }); if (!e) return null;
   // presses as [press, release] column pairs
   const presses = []; for (let i = 0; i < ev.length; i++) if (ev[i][1] === "press") presses.push([ev[i][0], ev[i + 1] ? ev[i + 1][0] : W]);
   return { e, ys, TPC, presses, movers }; }
 CONCEPT.fly = "a ship corridor fitted around a planned flight of holds and releases: it tours the room, slides the ground and the roof now and then, hazards on the sides";
-GEN.fly = o => { const { R, room, chance, W, H, G, mix, style, onBeat, entry } = ctx(o, 10), gap = room(6, 5);
+GEN.fly = o => { const { R, room, chance, W, H, G, mix, style, onBeat, entry } = ctx(o, 10), gap = o.gap ?? room(6, 4);
   // it comes in at a random height (Evgeni 2026-11-28): the corridor's floor at column 0 (short maps up to row 4, so the
   // band stays at the ground); a draw whose corridor doesn't start there is drawn again
   const b0 = entry(0, H > 10 ? H - gap - 2 : Math.min(4, H - gap - 2));
@@ -638,12 +643,12 @@ function wavePlan(W, H, R, mix, style, gap, onBeat, q0, q1, b0 = 0) {   // b0: t
     ys.push(y); bands.push(band0); }
   if (band0 !== 0 || ys[ys.length - 1] > GR + 0.5) return null;   // didn't get back down to the ground: draw again
   const e = fitCorridor(ys, bands, W, H, gap, TPC, { m: 8, half: 5, rest: GR, bandSafe: false, g0: b0 }); if (!e) return null;
-  if (e[0] !== b0) return null;
+  if (e[0] !== b0 || e[1] !== b0) return null;   // (a slope at column 0 kills the wave as it comes in: "block edge")
   const presses = []; for (let i = 0; i < ev.length; i++) if (ev[i][1] === "press") presses.push([ev[i][0], ev[i + 1] ? ev[i + 1][0] : W]);
   return { e, ys, TPC, presses, movers, portals }; }
 let pend = null;
 CONCEPT.wave = "a 45-degree zigzag tunnel fitted around a planned flight: legs of every size, a quick middle, a ground slide, two turns made by gravity portals";
-GEN.wave = o => { const { R, mix, room, W, H, G, style, onBeat, entry } = ctx(o, 13), gap = room(6, 5), q0 = mix(0.35, 0.2), q1 = mix(0.65, 0.8);
+GEN.wave = o => { const { R, mix, room, W, H, G, style, onBeat, entry } = ctx(o, 13), gap = o.gap ?? room(6, 4), q0 = mix(0.35, 0.2), q1 = mix(0.65, 0.8);
   // it comes in at a random height (Evgeni 2026-11-28): the corridor's floor at column 0 (short maps up to row 4)
   const b0 = entry(0, H > 13 ? H - gap - 2 : Math.min(4, H - gap - 2));
   let P = null; for (let k = 0; k < 12 && !P; k++) { pend = null; P = wavePlan(W, H, R, mix, style, gap, onBeat, q0, q1, b0); }
@@ -838,7 +843,10 @@ function rollers(o, { mode, band, travel, portals = 0, overlap = null }) { const
   for (let c = 0; c < W; c++) { if (Oc[c] + BT < H) G.box(c, c, Oc[c] + BT, tall ? H - 1 : Oc[c] + BT); if (Oc[c] > 0) G.box(c, c, tall ? 0 : Oc[c] - 1, Oc[c] - 1); }
   for (const [d, t] of [[0, "^"], [BT - 1, "v"]]) for (let c = 0; c < W;) {
     if (R.chance(0.2)) { G.put(c, Oc[c] + d, "o"); c += 2; continue; }
-    const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, Oc[c + k] + d, t); c += n + 1; }
+    // the column between two groups holds a half-buried saw (2026-11-28, tools/secretways.js: a spider landed in that
+    // gap on the bare ground and tapped up from it, 5 presses for a 9-press plan; a ball can flip off it the same way)
+    const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, Oc[c + k] + d, t);
+    if (c + n < W) G.put(c + n, Oc[c + n] + d, "o"); c += n + 1; }
   for (const s of S) { const c1 = Math.min(W - 1, s.c1), y = s.y + (s.mover ? s.mover.O : s.O);   // its row on the map
     // a surface on the band's edge rolls where the edge hazards are: clear them under it, by its row on the map against
     // each column's band (a surface with a mover spans two bands; its s.y is in the new one)
@@ -998,7 +1006,9 @@ CONCEPT["my-mwz1890c"] = "a sine-shaped corridor drawn by two chains of saws; am
 // BAND: 300 units, set by the portal), so the height comes from filling the band: the corridor's middle swings from one band
 // edge to the other (the edge is the far wall at a peak), saw chains on the open side only, longer waves.
 GEN["my-mwz1890c"] = o => { const { R, imix, room, len, W, H: HH, G } = ctx(Object.assign({ cols: 48 }, o), 20);
-  if (HH >= 16 && W >= 40) return swingTall(o, { R, imix, room, len, W, H: HH, G });
+  // the tall swell from 24 columns on (was 40: GDLM 78's 36-47 column hard swing fell to the plain sine below, which died on
+  // its first descent at 1x and 2x every seed; the swell solves there)
+  if (HH >= 16 && W >= 24) return swingTall(o, { R, imix, room, len, W, H: HH, G });
   const H = Math.min(10, HH); let c = 0;
   while (c < W) { const gap = R.int(room(5, 4), room(6, 5)), A = (H - 2) / 2 * (o.amp ?? R.pick([0.8, 1, 1])), mid = H / 2,   // the path's middle reaches the ground and the roof (the walls leave the map there)
       P = len(room(26, 20), room(34, 26));
@@ -1014,14 +1024,24 @@ GEN["my-mwz1890c"] = o => { const { R, imix, room, len, W, H: HH, G } = ctx(Obje
 // UNCHECKED (the ship tick between the two portals, and that the pair re-bands like a mode change).
 function swingTall(o, { R, imix, room, len, W, H, G }) {
   // the swell and the waves together stay under ~0.7 rows a column (steeper than that a swing can't follow)
-  const gap = R.int(room(5, 4), room(6, 5)), A = o.amp ?? 1.5, P = len(room(26, 20), room(34, 26)),
-    Pd = Math.max(60, Math.round(W * R.pick([1, 1, 0.75]))), top = H - 4;
+  // the corridor at least 5 rows: 4 (hard) could not be flown at all, at 1x or 2x, once it was closed above and below
+  const gap = Math.max(5, R.int(room(5, 4), room(6, 5))), A = o.amp ?? 1.5, P = len(room(26, 20), room(34, 26)),
+    Pd = W >= 120 ? Math.round(W / 2) : W,   // whole swells: it leaves at the height it came in (GDLM 78's first swing left near the top, so the next one was flown over)
+     top = H - 2 - Math.ceil(gap / 2 + A);   // the upper saw chain stays inside the map (H - 4 cut it off at the swell's top: GDLM 78's swing flew over the open top)
   // the swell from row 5 to the map's top less 4 (wider than this failed at 60 cols: too steep with the waves; open:
   // the whole height needs a longer swell, Evgeni "100% spread or close in all generations")
-  const D = x => 5 + (top - 5) * (1 - Math.cos(2 * Math.PI * x / Pd)) / 2, Y = x => D(x) + A * Math.sin(2 * Math.PI * x / P);
+  const low = Math.ceil(gap / 2), b0 = o.entry != null ? Math.max(low, Math.min(top, Math.round(o.entry))) : Math.min(5, low),
+    // o.entry (typebuild: where the swing before this one left the player): the swell starts there and swings to the far side
+    far = b0 > (low + top) / 2 ? low : top,
+    D = x => b0 + (far - b0) * Math.min(1, Pd / 60) * (1 - Math.cos(2 * Math.PI * x / Pd)) / 2,   // a short swell lower: under 60 columns the full height is too steep to follow   // b0: the corridor starts on the ground, where the player comes in (row 5 left a hard corridor's lower chain over the entry)
+    Y = x => D(x) + A * Math.sin(2 * Math.PI * x / P);
   let bc = 5;
   for (let x = 0; x < W; x++) { const y = Y(x), lo = Math.round(y - gap / 2) - 1, hi = Math.round(y + gap / 2), ch = x % 2 ? "q" : "o";
     if (lo >= 0) G.put(x, lo, ch); if (hi < H) G.put(x, hi, ch);
+    // curtains: every 8 columns from the 16th (room to swing up into the corridor first), saws from the lower chain down to the ground and from the upper one up to the
+    // map's top, so the corridor can't be flown under or over (GDLM 78: the swing rode the ground under the lower chain and
+    // the band's top over the upper one, a secret way in the level and in its own check)
+    if (x >= 16 && x < W - 2 && x % 8 === 0) { for (let r = lo - 1; r >= 0; r--) G.put(x, r, "q"); for (let r = hi + 1; r < H; r++) G.put(x, r, "q"); }
     if (x > 2 && x < W - 2 && Math.abs(D(x) - bc) >= 3) { const r = Math.round(y); G.put(x, r, "R");
       bc = Math.max(0, Math.floor((r * 30 + 15 - 150) / 30)) + 5; } }
   return { map: G.rows(), mode: "swing" }; }
@@ -1139,7 +1159,10 @@ GEN["my-mwz7nxue"] = o => { const { R, mix, W, H, G, style, onBeat, entry } = ct
   for (let c = 0; c < W; c++) { if (Oc[c] + BT < H) G.box(c, c, Oc[c] + BT, tall ? H - 1 : Oc[c] + BT); if (Oc[c] > 0) G.box(c, c, tall ? 0 : Oc[c] - 1, Oc[c] - 1); }
   for (const [d, t] of [[0, "^"], [BT - 1, "v"]]) for (let c = 0; c < W;) {
     if (R.chance(0.2)) { G.put(c, Oc[c] + d, "o"); c += 2; continue; }
-    const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, Oc[c + k] + d, t); c += n + 1; }
+    // the column between two groups holds a half-buried saw (2026-11-28, tools/secretways.js: a spider landed in that
+    // gap on the bare ground and tapped up from it, 5 presses for a 9-press plan; a ball can flip off it the same way)
+    const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, Oc[c + k] + d, t);
+    if (c + n < W) G.put(c + n, Oc[c + n] + d, "o"); c += n + 1; }
   for (const t of S) { const b = Math.min(W - 1, t.b);
     for (let c = t.a; c <= b; c++) { const y = (t.mover && c >= t.mover.c ? t.mover.rel + t.mover.O : t.y + t.O);
       // its blocks, and the band's hazard where it runs on the band's edge (and the two columns past an edge's end)
@@ -1322,7 +1345,7 @@ function tracePath(z) { const map = z.map, H = map.length, W = map[0].length, mo
     if (bump || y < -60 || y > H * 30 + 60) break; }
   return out; }
 function make(key, opts = {}) { const g = GEN[key]; if (!g) throw new Error("no generator for " + key + " (have " + KEYS.join(", ") + ")");
-  const o = {}; for (const k of ["cols", "rows", "seed", "bpm", "beatCols", "speed", "entry"]) if (opts[k] != null) o[k] = +opts[k];
+  const o = {}; for (const k of ["cols", "rows", "seed", "bpm", "beatCols", "speed", "entry", "gap"]) if (opts[k] != null) o[k] = +opts[k];
   if (Array.isArray(opts.beats)) o.beats = opts.beats;   // a song's beats in the section (seconds, or {t, s})
   if (opts.tier != null) o.tier = isNaN(+opts.tier) ? opts.tier : +opts.tier;
   const r = g(o), z = (LS.SECTIONS || []).find(s => s.key === key);

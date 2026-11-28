@@ -16,3 +16,11 @@ const rin = Array.from({ length: 30 }, (_, c) => [c, 2]), rover = Array.from({ l
 assert.ok(outsideMap(map, rin) === 0, "map: inside");
 assert.ok(outsideMap(map, rover) > 0.9, "map: over the roof");
 console.log("ok outsideMap: inside 0, over the roof " + outsideMap(map, rover).toFixed(2));
+// flappy: a pipe hanging over open ground (rows 5-8, nothing under it), a ground pillar further on -- the way is under the
+// pipe along the ground; GDLM 78 block 516 was flagged "below everything" before the roof / floor rule
+const fl = []; for (let c = 10; c < 14; c++) for (let r = 5; r < 9; r++) fl.push({ id: 1, x: c * 30 + 15, y: r * 30 + 15 });
+for (let c = 20; c < 22; c++) { for (let r = 0; r < 3; r++) fl.push({ id: 1, x: c * 30 + 15, y: r * 30 + 15 }); for (let r = 7; r < 9; r++) fl.push({ id: 1, x: c * 30 + 15, y: r * 30 + 15 }); }
+const LF = GD.parseLevel("kA2,0;" + fl.map(o => `1,${o.id},2,${o.x},3,${o.y}`).join(";") + ";");
+const under = outside(LF.objects, LF.header, [], { path: Array.from({ length: 900 }, (_, i) => ({ x: 240 + i * 1.3, y: 75, mode: "ufo" })) });
+assert.strictEqual(under.stretches.length, 0, "under a hanging pipe over the ground: no stretch");
+console.log("ok flappy: under a hanging pipe is the way, not a skip");

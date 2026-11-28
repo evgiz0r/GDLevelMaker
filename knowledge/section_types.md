@@ -215,7 +215,7 @@ type, so a builder can make a new one of any length, synced to the song, and so 
 | flappy bird corridors | ufo | pipes from the floor and the ceiling with a 4-row gap at changing heights | one pipe pair | the gap's height, the spacing | the gap height walks up and down |
 | ball corridors | ball | floors and ceilings at several heights; the ball flips from one to the next | a floor run then a ceiling run | run length, height step | more levels, a spike under each switch |
 | stair path (his) | cube | a lattice of single blocks: many paths in theory, every wrong one blocked by a hazard | a column of blocks 3 apart; each hop up 2 or down 1 | which block of each column stays clear | more columns; the clear route climbs and falls |
-| swing (his) | swing | round movement: a big up-and-down corridor whose sides are curves, not slopes or blocks | one wave of the path (3 rows up and down, about 18 columns) | amplitude, period, the gap | waves of changing size. Ship can use it too (Evgeni: "the swing ( and the ship in a way, can do big up and down patterns )") |
+| swing (his) | swing | round movement: a big up-and-down corridor whose sides are curves, not slopes or blocks | one wave of the path (3 rows up and down, about 18 columns) | amplitude, period, the gap | waves of changing size. Ship can use it too (Evgeni: "the swing ( and the ship in a way, can do big up and down patterns )"). Since 2026-11-28 (GDLM 78): the tall swell from 24 columns on, starting on the ground, the gap at least 5 rows, both saw chains inside the map, a saw curtain every 8 columns from the 16th and whole swells (it leaves at the height it came in; shorter than 60 columns a lower swell), so it is flown inside, never under or over (the old one was flown along the ground under its lower chain) |
 
 ## Orb and pad sets (a mechanic any type can use)
 
@@ -374,6 +374,20 @@ which the sim does not have yet (PHYSICS.md open).
   (no floor or ceiling at its exit, e.g. the tall swing's saw corridor 14 rows up) gets a descent in the join from its exit
   corridor's middle to the mouth, 1.5 columns a row, with a band mover of its mode (R swing, H ship, U ufo, A wave) every 3
   rows. The theme gallery clears again with it (107 presses).
+- **Secret ways and skips** (2026-11-28, Evgeni: "be careful for secret ways and skipping the structures (in wave for
+  example)"): `node tools/secretways.js` solves each generated section and compares the solver's route with the plan (SKIP:
+  over a quarter of its route 3+ rows off the plan, or outside the map). First sweep, 44 sections at 60 cols: one real skip,
+  the spider landing on bare ground in the column between two ground spike groups and tapping up from it (5 presses for a
+  9-press plan); that column now holds a half-buried saw (ball, ball portals, spider: 0 of 18 flagged after). Fly, wave and
+  flappy are often flown with far fewer presses on the same path (LOOSE: the corridor roomier than the plan's rhythm).
+  Tightened 2026-11-28: fly and wave gap by tier 6 / 5 / 4 rows (was 6 / 5.5 / 5): the solver now needs 9-12 presses on
+  60-col harder fly (was 8) and 8-10 on harder wave (was 6-9); every plan clears (fly 144/144, wave 90/90). What did not
+  work: making every fly hold / release a real turn of 1-2 rows (under the gentle-angle cap each state ends at the cap,
+  so every seed drew the same zigzag), a 3-row fly gap (still half the plan's presses: a ship hovers through quick taps;
+  the plan's taps at harder are feathering, so the clicks a corridor really asks for come from its turns and its gap),
+  and a tighter flappy gap (the same solver counts, one plan died). Also: a wave draw whose floor slopes at column 0 is
+  drawn again (it died as it came in), a tall fly plan that slides the map's top is drawn again (the roof slopes there
+  caught the ship), and the closer cube steps quicker over 12 rows (mean span of the path 3.7 -> 4.3 rows).
 - **A minimum length per type** (Evgeni: some need room for real play, robot and orbs).
 - Height at 1.5x rows, 60 cols (easy/harder, 2 seeds): wave 93%, fly 76%, ship corridor 80%, staircase 85%, closecube 80%,
   ball 75%, spider 67%, opencube 68%, flappy 60%, orbs 55%. The cube types need their climbs scaled to the taller map.
