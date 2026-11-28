@@ -1,0 +1,226 @@
+<title>Hellgate Ending</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<!-- The Hellgate Ending page (private artifact https://claude.ai/artifact/PZgnLMtAKT25HYYmK9kLc1): the render per version
+     (db meta/video {versions, open}; video files are the artifact's assets), the beat-by-beat script (db meta/script
+     {title, rows: [[time, beat, what]]}), notes per version (db notes/<version>). New version or script: db writes only, no
+     republish. Republish this file only when the page itself changes (Artifact publish with url). HELLGATE.md. -->
+<style>
+/* Layout: one column, the render on top, the script and the notes under it. Single dark look (the level's own night). */
+:root{
+  --bg:#0f0b10; --panel:#1a1319; --line:#3a2a33; --ink:#efe6ea; --dim:#9c8b94; --acc:#e0603a; --ok:#6fc28a; --bad:#e2675f;
+  --display:"Space Grotesk",system-ui,sans-serif; --body:Inter,system-ui,sans-serif;
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);padding-block:18px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{font:600 1.5rem/1.2 var(--display);margin:0;text-wrap:balance;padding-right:170px}
+.sub{color:var(--dim);font-size:.85rem;margin-top:4px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+section>summary{list-style:none;padding:10px 14px;font:600 .8rem var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+section>summary::before{content:"▾ ";}
+section:not([open])>summary::before{content:"▸ ";}
+.in{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px}
+video{width:100%;max-width:100%;aspect-ratio:16/9;background:#000;border-radius:6px;display:block}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--dim);font-size:.85rem}
+.row .sp{flex:1}
+select,button{font:inherit;color:var(--ink);background:#24191f;border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+button.send{background:#3a1f17;border-color:#6a3423}
+button.send.ready{background:#1f3a27;border-color:#3f7a50}
+textarea{width:100%;box-sizing:border-box;min-height:120px;resize:vertical;font:inherit;color:var(--ink);background:#130e12;border:1px solid var(--line);border-radius:6px;padding:10px}
+textarea:focus,button:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.st{font-size:.8rem;color:var(--dim)} .st.bad{color:var(--bad)} .st.ok{color:var(--ok)}
+.empty{aspect-ratio:16/9;display:grid;place-items:center;color:var(--dim);background:#000;border-radius:6px}
+/* the script: time | beat | what happens; a row is a button that jumps the video there */
+.stitle{font-size:.85rem;color:var(--dim)}
+.scr{display:grid;grid-template-columns:auto auto 1fr;gap:0;font-size:.88rem;line-height:1.4}
+.scr>.r{display:contents}
+.scr>.r>*{padding:6px 8px;border-top:1px solid var(--line)}
+.scr .t{font-variant-numeric:tabular-nums;color:var(--acc);white-space:nowrap}
+.scr .b{color:var(--dim);white-space:nowrap;font-variant-numeric:tabular-nums}
+.scr .r[role=button]:hover>*{background:#24191f}
+@media (max-width:520px){.scr{grid-template-columns:auto 1fr}.scr .b{display:none}}
+/* hover rule (tools/snippets/hover.css) */
+button,.btn,[role=button],select,summary,input[type=button],input[type=submit]{transition:filter .12s,transform .12s,box-shadow .12s,background-color .12s}
+button:hover:not(:disabled),.btn:hover,[role=button]:hover,select:hover,summary:hover,input[type=button]:hover,input[type=submit]:hover{filter:brightness(1.18);box-shadow:0 0 0 2px rgba(120,170,255,.35);cursor:pointer}
+button:active:not(:disabled),.btn:active,[role=button]:active{transform:translateY(1px);filter:brightness(.95)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<!-- refresh (tools/snippets/refresh.html) -->
+<style>
+#rf{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));z-index:9999;display:flex;align-items:center;gap:6px;font:12px system-ui,sans-serif;color:var(--dim)}
+#rf button{font:16px/1 system-ui;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;padding:0}
+#rf button:hover{border-color:var(--acc)}
+#rf.go button{animation:rfspin .6s linear infinite}
+@keyframes rfspin{to{transform:rotate(360deg)}}
+#rft{position:fixed;top:calc(44px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));z-index:9999;padding:6px 12px;border-radius:14px;background:var(--acc);color:#fff;font:600 12px system-ui;opacity:0;transform:translateY(-6px);transition:.35s;pointer-events:none}
+#rft.on{opacity:1;transform:none}
+body.rfflash{animation:rfflash .7s ease-out}
+@keyframes rfflash{0%{filter:brightness(1.35)}100%{filter:none}}
+</style>
+<div id="rf"><span id="rfl"></span><button id="rfb" title="refresh: fresh data, keeps your place">⟳</button></div><div id="rft">refreshed ✓</div>
+
+<main>
+  <header>
+    <h1>Hellgate Ending</h1>
+    <div class="sub">GDLM 44 · chased to the gate, it closes on them · song 343707 from 213.8 s · auto, no presses</div>
+  </header>
+
+  <section open id="secVideo"><summary data-fold>Render</summary>
+    <div class="in">
+      <div id="vbox"><div class="empty" id="vempty">Loading the render…</div></div>
+      <div class="row"><label for="ver">Version</label><select id="ver"></select><span class="sp"></span><span id="vinfo"></span></div>
+    </div>
+  </section>
+
+  <section open id="secScript"><summary data-fold>Script, beat by beat</summary>
+    <div class="in">
+      <div class="stitle" id="stitle">Loading the script…</div>
+      <div class="scr" id="scr"></div>
+    </div>
+  </section>
+
+  <section open id="secNotes"><summary data-fold>Notes for Claude</summary>
+    <div class="in" id="notesBox">
+      <textarea id="notes" placeholder="What's off in this version? Times help: 'at 0:07 the arch pieces land too early'…"></textarea>
+      <div class="row"><span class="st" id="saveSt">notes save as you type</span><span class="sp"></span>
+        <span class="st" id="sendSt"></span><button class="send" id="send">📨 send to Claude</button></div>
+    </div>
+  </section>
+</main>
+
+<script>
+(function(){ // refresh button
+  const K="rf:"+(document.title||location.pathname),hm=t=>new Date(t).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+  let s={};try{s=JSON.parse(localStorage.getItem(K)||"{}")}catch(e){}
+  const now=Date.now(),L=document.getElementById("rfl");
+  if(s.pending&&now-s.pending<30e3){s.at=now;delete s.pending;requestAnimationFrame(()=>{document.body.classList.add("rfflash");const t=document.getElementById("rft");t.classList.add("on");setTimeout(()=>t.classList.remove("on"),1600)})}else s.at=now;
+  try{localStorage.setItem(K,JSON.stringify(s))}catch(e){}
+  L.textContent="last refreshed "+hm(s.at||now);
+  document.getElementById("rfb").onclick=async()=>{document.getElementById("rf").classList.add("go");
+    try{s.pending=Date.now();localStorage.setItem(K,JSON.stringify(s))}catch(e){}
+    try{localStorage.setItem("hge:view",JSON.stringify(view()))}catch(e){}
+    setTimeout(()=>location.reload(),350)};
+})();
+
+// keep the view: folds, scroll, chosen version, playback time
+const $=id=>document.getElementById(id);
+function view(){const v=$("vid");return{y:scrollY,ver:$("ver").value,t:v?v.currentTime:0,
+  folds:[...document.querySelectorAll("section")].map(s=>[s.id,s.open])}}
+let saved={};try{saved=JSON.parse(localStorage.getItem("hge:view")||"{}")}catch(e){}
+(saved.folds||[]).forEach(([id,o])=>{const s=$(id);if(s)s.open=o});
+document.querySelectorAll("section").forEach(s=>s.addEventListener("toggle",keep));
+let kt;function keep(){clearTimeout(kt);kt=setTimeout(()=>{try{localStorage.setItem("hge:view",JSON.stringify(view()))}catch(e){}},300)}
+addEventListener("scroll",keep,{passive:true});
+addEventListener("error",e=>{$("saveSt").textContent="page error: "+e.message;$("saveSt").className="st bad"});
+
+let db=null,versions=[],cur=null,note={text:"",at:0,sentAt:0},lastInput=0,typing=false;
+const hm=t=>t?new Date(t).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";
+
+function renderVersions(){
+  const sel=$("ver");sel.textContent="";
+  versions.forEach(v=>{const o=document.createElement("option");o.value=v.version;o.textContent=v.version+(v.label?" · "+v.label:"");sel.appendChild(o)});
+  const want=(cur&&versions.find(v=>v.version===cur.version))||versions.find(v=>v.version===saved.ver)||versions[versions.length-1];
+  if(want){sel.value=want.version;show(want)}
+}
+function show(v){
+  const first=!cur;cur=v;
+  const box=$("vbox");let vid=$("vid");
+  const src="/_blob/"+v.id;
+  if(!vid){box.textContent="";vid=document.createElement("video");vid.id="vid";vid.controls=true;vid.preload="metadata";vid.playsInline=true;box.appendChild(vid);
+    vid.addEventListener("timeupdate",keep);}
+  if(vid.getAttribute("src")!==src){vid.setAttribute("src",src);
+    if(first&&saved.t&&saved.ver===v.version)vid.addEventListener("loadedmetadata",()=>{vid.currentTime=saved.t},{once:true});}
+  $("vinfo").textContent=[v.length,v.at?"rendered "+new Date(v.at).toLocaleString([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):""].filter(Boolean).join(" · ");
+  if(first&&saved.y)setTimeout(()=>scrollTo(0,saved.y),200);
+  loadNote();
+}
+$("ver").onchange=()=>{const v=versions.find(x=>x.version===$("ver").value);if(v){cur=null;show(v);keep()}};
+
+// the script: rows [time "0:07", beat "k16", what]; a click on a row seeks the video to that time
+function renderScript(x){
+  const box=$("scr");box.textContent="";
+  $("stitle").textContent=x.title||"";
+  (x.rows||[]).forEach(r=>{
+    const [t,b,w]=r,row=document.createElement("div");row.className="r";
+    const secs=/^(\d+):(\d+(?:\.\d+)?)$/.exec(t||"");
+    if(secs){row.setAttribute("role","button");row.tabIndex=0;row.title="play from "+t;
+      const go=()=>{const v=$("vid");if(v){v.currentTime=(+secs[1])*60+(+secs[2]);v.play().catch(()=>{});$("secVideo").open=true;$("secVideo").scrollIntoView({behavior:"smooth"})}};
+      row.onclick=go;row.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}};}
+    for(const [c,txt] of [["t",t],["b",b],["w",w]]){const d=document.createElement("div");d.className=c;d.textContent=txt||"";row.appendChild(d)}
+    box.appendChild(row);
+  });
+  if(!(x.rows||[]).length)$("stitle").textContent="No script yet.";
+}
+
+let unNote=null;
+function loadNote(){
+  if(!db||!cur)return;
+  if(unNote)unNote();
+  const ver=cur.version;
+  unNote=db.doc("notes/"+ver).onSnapshot(d=>{
+    const x=d.exists?JSON.parse(JSON.stringify(d.data())):{text:"",at:0,sentAt:0};
+    note=x; if(!typing||Date.now()-lastInput>4000){if($("notes").value!==x.text)$("notes").value=x.text||""}
+    status();
+  },err=>{$("saveSt").textContent="not saved: "+(err&&err.message||err);$("saveSt").className="st bad"});
+}
+function status(){
+  const s=$("sendSt");
+  if(!note.text){s.textContent="";return}
+  s.textContent=note.sentAt&&note.sentAt>=note.at?"sent "+hm(note.sentAt):"not sent yet";
+}
+let st;
+$("notes").addEventListener("input",()=>{typing=true;lastInput=Date.now();$("saveSt").textContent="saving…";$("saveSt").className="st";
+  clearTimeout(st);st=setTimeout(saveNote,700)});
+$("notes").addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){clearTimeout(st);saveNote()}});
+async function saveNote(){
+  if(!db||!cur){$("saveSt").textContent="not saved: notes need you signed in to claude.ai";$("saveSt").className="st bad";return}
+  const text=$("notes").value;
+  try{await db.doc("notes/"+cur.version).set({text,at:Date.now(),sentAt:note.sentAt||0,version:cur.version});
+    $("saveSt").textContent="saved "+hm(Date.now());$("saveSt").className="st ok"}
+  catch(e){$("saveSt").textContent="not saved: "+(e.message||e.code||e);$("saveSt").className="st bad"}
+  typing=false;
+}
+
+let CM=null;
+$("send").onclick=async()=>{
+  const text=$("notes").value.trim(),s=$("sendSt"),b=$("send");b.classList.remove("ready");
+  if(!text){s.textContent="write a note first";return}
+  if(note.sentAt&&note.sentAt>=note.at&&note.text===$("notes").value){s.textContent="already sent "+hm(note.sentAt)+", nothing new";return}
+  if(!CM){s.textContent="sending isn't available here; say \"notes\" in the chat and Claude reads them";return}
+  try{
+    const anchor=await CM.anchorFor($("notesBox"));
+    await CM.sendToClaude({anchor,text:"Hellgate ending "+(cur?cur.version:"")+" notes:\n"+text});
+    const now=Date.now();
+    if(db&&cur){await db.doc("notes/"+cur.version).set({text:$("notes").value,at:note.at||now,sentAt:now,version:cur.version})}
+    s.textContent="sent "+hm(now);s.className="st ok";
+  }catch(e){
+    s.className="st bad";
+    s.textContent=(e&&e.code==="claude_unavailable"?"Claude can't take it right now":"not sent")+": press 📨 again in a few seconds";
+    setTimeout(()=>{b.classList.add("ready");b.textContent="📨 tap now";setTimeout(()=>{b.textContent="📨 send to Claude";b.classList.remove("ready")},15000)},6500);
+  }
+};
+
+(async()=>{
+  const timer=setTimeout(()=>{if(!versions.length)$("vempty").textContent="The render didn't load. Press ⟳ to try again."},10000);
+  try{CM=await claude.use("comments");if(CM){const c=await CM.canSendToClaude();if(c!=="available"){$("send").title="send to Claude: "+c}}}catch(e){CM=null}
+  try{db=await claude.use("db")}catch(e){db=null}
+  if(!db){clearTimeout(timer);$("vempty").textContent="Sign in to claude.ai to watch the render.";$("stitle").textContent="Sign in to claude.ai to read the script.";return}
+  db.doc("meta/script").onSnapshot(d=>{renderScript(d.exists?JSON.parse(JSON.stringify(d.data())):{rows:[]})},
+    e=>{$("stitle").textContent="Couldn't read the script: "+(e.message||e)});
+  db.doc("meta/video").onSnapshot(d=>{
+    clearTimeout(timer);
+    const x=d.exists?JSON.parse(JSON.stringify(d.data())):{versions:[]};
+    versions=x.versions||[];
+    // Claude sets meta/video.open to the version to show: a new value wins once over the viewer's last pick
+    let lastOpen=null;try{lastOpen=localStorage.getItem("hge:open")}catch(e){}
+    if(x.open&&x.open!==lastOpen&&versions.some(v=>v.version===x.open)){
+      try{localStorage.setItem("hge:open",x.open)}catch(e){}
+      if(!cur||cur.version!==x.open){saved.ver=x.open;saved.t=0;cur=null}
+    }
+    if(!versions.length){$("vempty").textContent="No render yet: Claude adds each version here.";return}
+    renderVersions();
+  },e=>{clearTimeout(timer);$("vempty").textContent="Couldn't read the render list: "+(e.message||e)});
+})();
+</script>

@@ -54,6 +54,26 @@ slot keeps the uploaded version until he says to update it.
   big hit): the doors slam shut over the player, a hot seam, one sky flash, the stage thuds -> the gate dims into black, the
   quiet sign. Move / rotate / alpha / colour only, all locked to the player's x (move 58) so the stage stays on the screen;
   603 objects, 351 triggers, 61 groups. Test: `node tests/hellgate_ending.js`.
+  **v5, the dodges and slower fire** (Evgeni on v4's video: "but its withou the jumpts"; "i want the shots to be slower, they
+  are too fast now"): every shot (7, on the strong notes k4-27) now lands where the player is, and a pink pad (140) 35 units
+  before it hops him 55 units up, at the top of the hop as it lands -- the "auto gameplay that avoids those things" of his
+  script; still no press. Shots fly 1.1 s (were 0.45-0.55; the kit's default is 1.1 now, for the auto part too).
+  Test: the player is >40 units up at every landing.
+  **v4, the chase** (Evgeni: "we are running, and some demons are chasing us. shooting at us, throwing fire or whatever,
+  dragons above flying. we avoid by some auto gameplay that avoid those things. and then on the beat we pass the gate, and
+  it closes on them"). Script, beat by beat (k = beat from 215.43 s, 0.414 s each): k0 three demons burst in from the left
+  and run behind us (tools/hellgate_chase.js, legs on half-beats), the city lights up, the first pillar lands ahead of us;
+  k2 two dragons swoop in from the top left, the second pillar lands; k4-27 fire on the strong notes (dragons breathe it,
+  the lead demon hurls it), each landing just behind the player; k8-13 the arch stones fly in and land on the beats, the
+  gate stands 230 units ahead; k14 the doorway goes dark; k16-27 the rune ring turns in the loud bars, souls stream in,
+  the sky heats; k24 the portcullis shows, hung high in the arch, the demons start to fall back; k28-29 it jolts down a
+  notch per beat; from 227.10 s the gate comes at us at the ground's speed, we run through its centre on k30 (227.84 s);
+  228.25 s (the last hit) the portcullis drops behind us onto the demons: sparks off the ground, stones fall, the screen
+  shakes, the demons are knocked back and claw at the bars on the next beats, the dragons climb away, the camera eases out
+  to 0.85; from 229.5 s everything dims to black; the quiet sign 228.8-232.3 s (moved after the slam so it is not over the
+  chase). The auto part (tools/hellgate_auto.js, its own thread) uses the same kit before 215.4 s, so the chase runs on
+  through the seam. Groups: the ending's chase kit 4101+, the auto part's 4001+ / 5001+, channels 850-889 shared.
+  3110 objects, 1955 triggers. Not checked in GD: the gate's long move under a locked stage, the kit's rotations.
   **v3, the story and the background** (Evgeni on v2: "a bit tame still. some more things on the background. a bit more
   objects doing things. still a lot of dead space ... no story yet, for the finale"): a demon (tools/artlab.js demonObjects,
   the art lab's hand-built head) wakes in the doorway behind the rune seal (eyes k 16, rises to k 22, roars on 3 bars, claws

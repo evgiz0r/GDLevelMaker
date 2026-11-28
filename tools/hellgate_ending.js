@@ -58,19 +58,34 @@ const COL = {
   soul: [255, 210, 190], eyeR: [255, 60, 20], ash: [120, 110, 115],
 };
 
-let demonChannels = {};   // the demon's own colour channels (870+), set by parts(), into the header by build()
+// the fire (Evgeni's script: "we avoid by some auto gameplay"): a shot on the strong notes, at most one per 1.9 beats;
+// v5: each shot lands where the player is, and a pink pad under him (PAD_LEAD units before) hops him over it, at the top of
+// the hop when it lands. Shots fly FLIGHT s (Evgeni on v4: "i want the shots to be slower, they are too fast now": 0.45-0.55 -> 1.1)
+const FLIGHT = 1.1, PAD = 140, PAD_LEAD = 35;    // pink pad: a 55-unit hop, 0.4 s in the air, top ~35 units past the pad
+function fireTimes() {
+  const ts = []; let lastF = -9;
+  for (const [t, st] of NOTES.notes) if (t >= beatS(4) && t < beatS(27) && st >= 0.8 && t - lastF > NOTES.period * 1.9) { lastF = t; ts.push(t); }
+  return ts;
+}
+let kitHeader = h => h;   // the chase kit's colour channels (850+), set by parts(), into the header by build()
 // The show: songT(s) = level seconds of song second s; ctx from FX.context on the level's run.
 function parts(ctx, songT, o = {}) {
-  const out = [], log = [], D = (id, x, y, op = {}) => K.obj(id, x, y, op);
+  const out = [], log = [];
+  let GATE = null;                                  // while set, every object made is part of the gate (it moves as one)
+  const D = (id, x, y, op = {}) => K.obj(id, x, y, GATE ? Object.assign({}, op, { groups: (op.groups || []).concat(GATE) }) : op);
   const xs = s => ctx.xAt(songT(s));               // trigger x for song second s
   const tLock = songT(o.lockAt || 214.8), x0 = ctx.xAt(tLock), lockSecs = songT(o.songTo || 232.5) - tLock;
-  const C = { x: x0 + 10, y: 95 };                 // the arch's centre, just ahead of the player: the player stands in the gate
+  // v4 (Evgeni's script: chased, then "on the beat we pass the gate, and it closes on them"): the gate stands AHEAD of the
+  // player while it is raised (230 units, the right of the screen), comes at us at the ground's speed through D, the player
+  // passes its centre on beat 30 and the portcullis drops behind him on the last hit, on the demons
+  const AHEAD = 230, C = { x: x0 + AHEAD, y: 95 };
+  const SPEED = 311.58, PASS = beatS(30), tApp = PASS - AHEAD / SPEED, BEHIND = (SLAM - PASS) * SPEED;   // gate centre at -BEHIND at the slam
   const ALL = ctx.group();                         // everything on the stage: locked to the player's x
   const g = () => ctx.group();
   const hid = gr => ctx.hideAtStart(gr);
   const ch = (rgb, op = {}) => ctx.channel(rgb, op);
   const chStone = ch(COL.stone), chLit = ch(COL.stoneLit), chRim = ch(COL.rim, { blend: true }), chEmber = ch(COL.ember, { blend: true });
-  const chRune = ch(COL.rune, { blend: true }), chDoor = ch(COL.door), chSeam = ch(COL.seam, { blend: true });
+  const chRune = ch(COL.rune, { blend: true });
   const fades = [];                                 // groups to dim at the end
   let seed = 7; const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   out.push(FX.T.lockPlayer(x0, ALL, lockSecs));
@@ -137,11 +152,11 @@ function parts(ctx, songT, o = {}) {
   }
   log.push(`meteors: ${mets} on the strongest notes`);
 
+  GATE = g();
   // A. the pillars: two tall towers outside, two that hold the arch, rising 150 units out of the dark
   const RISE = 150;
   const pillars = [
-    { dx: -170, h: 150, w: 26, k: 0 }, { dx: 190, h: 150, w: 26, k: 1 },
-    { dx: -95, h: 86, w: 30, k: 2 }, { dx: 115, h: 86, w: 30, k: 3 },
+    { dx: AHEAD - 98, h: 86, w: 30, k: 0 }, { dx: AHEAD + 98, h: 86, w: 30, k: 2 },
   ];
   const caps = [], pillarGroups = [];
   for (const p of pillars) {
@@ -159,9 +174,10 @@ function parts(ctx, songT, o = {}) {
     out.push(FX.T.alpha(xs(t - 0.12), gp, 1, 0.08), FX.T.move(xs(t - 0.12), gp, 0, RISE, 0.22, FX.E.pop));   // overshoots a little, lands on the beat
     fades.push(gp);
   }
-  caps.forEach((gc, i) => out.push(FX.T.alpha(xs(beatS(4 + i)), gc, 0.9, 0.08)));
+  caps.forEach((gc, i) => out.push(FX.T.alpha(xs(beatS(4 + 2 * i)), gc, 0.9, 0.08)));
   log.push(`A pillars rise one a beat ${beatS(0).toFixed(2)}-${beatS(3).toFixed(2)} s, caps light ${beatS(4).toFixed(2)}-${beatS(7).toFixed(2)} s`);
 
+  const GATEG = GATE; GATE = null;                  // embers are not part of the gate
   // embers rising through A-C: one on every beat, somewhere in the gate
   // ENERGY (Evgeni on v1: "a bit too tame, it has to be much more energetic"): an ember bursts up on every note of the song
   // from 0.55 up (not only the beats), faster, bigger on the strong ones
@@ -175,6 +191,7 @@ function parts(ctx, songT, o = {}) {
       FX.T.alpha(xs(t + 0.25), ge, 0, 0.6));
   }
 
+  GATE = GATEG;
   // B. the arch: 9 stones on a half circle, each flying in from out of the screen and landing on its beat
   const RA = 105, N = 11, stones = [];
   for (let i = 0; i < N; i++) {
@@ -197,51 +214,23 @@ function parts(ctx, songT, o = {}) {
   for (const s of stones) out.push(FX.T.move(xs(settle), s.gs, 0, -3, 0.08, FX.E.hit), FX.T.move(xs(settle + 0.1), s.gs, 0, 3, 0.35, FX.E.settle));
   log.push(`B arch stones land on ${beatS(8).toFixed(2)}-${beatS(12).toFixed(2)} s, keystone ${beatS(13).toFixed(2)} s`);
 
-  // THE DEMON (v3 story): behind the doorway's dark, behind the rune seal, in front of the city
-  const VOID = hid(g()), chVoid = ch(COL.void);
+  // the dark doorway inside the arch
+  const VOID = hid(g()), chVoid = ch(COL.void), k16 = beatS(16);
   out.push(D(211, C.x, C.y / 2, { ch: chVoid, z: "B3", zo: -90, sx: 2 * (RA - 8) / 30, sy: C.y / 30, groups: [VOID, ALL] }));
   out.push(D(497, C.x, C.y, { ch: chVoid, z: "B3", zo: -90, s: 2 * (RA - 8) / 50, groups: [VOID, ALL] }));   // 497: a 50-unit disk
-  const DEM = g(), dFace = hid(g()), dJaw = hid(g()), dEyes = hid(g()), dGlow = hid(g());
-  const dm = require("./artlab.js").demonObjects({ upp: 0.5, x0: C.x - 75, y0: 178, layer: -1, ch0: 870, all: DEM, zo0: -60,
-    groups: { head: dFace, horn: dFace, jaw: dJaw, eyes: dEyes, glow: dGlow } });
-  for (const ob of dm.objects) { ob.props[57] += "." + ALL; out.push(ob); }
-  demonChannels = dm.channels;
-  const k16 = beatS(16), rise = 46;
   out.push(FX.T.alpha(xs(beatS(14)), VOID, 1, 0.8));
-  out.push(FX.T.move((ctx.path[0].x || 0) + 4, DEM, 0, -rise, 0));                              // parked low
-  out.push(FX.T.alpha(xs(k16), dGlow, 0.9, 0.3), FX.T.alpha(xs(k16 + 0.1), dEyes, 1, 0.15));     // the eyes open in the dark
-  out.push(FX.T.alpha(xs(beatS(18)), dFace, 0.85, beatS(22) - beatS(18)), FX.T.alpha(xs(beatS(18)), dJaw, 0.85, beatS(22) - beatS(18)),
-    FX.T.move(xs(beatS(18)), DEM, 0, rise, beatS(22) - beatS(18), FX.E.sineOut));               // it rises out of the dark
-  for (const k of [20, 24, 26]) {                                                                // it roars on the bars
-    const t = beatS(k);
-    out.push(FX.T.move(xs(t), dJaw, 0, -9, 0.08, FX.E.hit), FX.T.move(xs(t + 0.35), dJaw, 0, 9, 0.3, FX.E.settle));
-    out.push(FX.T.alpha(xs(t), dGlow, 1, 0), FX.T.alpha(xs(t + 0.1), dGlow, 0.7, 0.5));
-    out.push(FX.T.rotate(xs(t), dFace, k % 8 ? 4 : -4, 0.1, { ease: FX.E.hit }), FX.T.rotate(xs(t + 0.35), dFace, k % 8 ? -4 : 4, 0.3, { ease: FX.E.settle }));
-  }
-  // its claws grip the arch from inside (k 24): three talons over the arch's inner edge each side
-  const CLAW = [hid(g()), hid(g())], chClaw = ch(COL.claw), chTalon = ch(COL.talon);
-  CLAW.forEach((gcl, j) => {
-    const sx = j ? 1 : -1, cx = C.x + sx * (RA - 16), cy = C.y + 30;
-    out.push(D(497, cx, cy, { ch: chClaw, z: "B2", zo: 8, sx: 0.28, sy: 0.22, groups: [gcl, ALL] }));
-    for (let f = 0; f < 3; f++) out.push(D(693, cx + sx * 12, cy + 10 - f * 10, { ch: chTalon, z: "B2", zo: 9, sx: 0.45, sy: 0.22, rot: sx > 0 ? 0 : 0, flipX: sx < 0, groups: [gcl, ALL] }));
-    out.push(FX.T.move((ctx.path[0].x || 0) + 4, gcl, -sx * 30, 0, 0));
-    out.push(FX.T.alpha(xs(beatS(24) - 0.1), gcl, 1, 0.1), FX.T.move(xs(beatS(24) - 0.1), gcl, sx * 30, 0, 0.1, FX.E.hit));   // slap onto the stone
-    out.push(FX.T.move(xs(beatS(28)), gcl, sx * 6, 4, 0.2, FX.E.pop));                                                     // D: pulls harder
-    out.push(FX.T.move(xs(SLAM - 0.08), gcl, -sx * 40, -6, 0.1, 11), FX.T.alpha(xs(SLAM - 0.05), gcl, 0, 0.06));          // knocked back in by the doors
-  });
-  // D: it surges up and forward as the chains go taut (the glow flares)
-  out.push(FX.T.move(xs(beatS(28)), DEM, 0, 14, SLAM - 0.1 - beatS(28), FX.E.pop), FX.T.alpha(xs(beatS(28)), dGlow, 1, 0.3));
-  out.push(FX.T.alpha(xs(SLAM + 0.1), DEM, 0, 0));                                                // shut away behind the doors
+  GATE = null;
   // souls of the city stream into the gate on the notes of C
   const chSoul = ch(COL.soul, { blend: true }); let souls = 0, lastSo = -9;
-  for (const [t, st] of NOTES.notes) if (t >= k16 && t < SLAM - 0.5 && st >= 0.5 && t - lastSo > 0.12) {
+  for (const [t, st] of NOTES.notes) if (t >= k16 && t < tApp - 0.85 && st >= 0.5 && t - lastSo > 0.12) {
     lastSo = t; souls++;
     const gs = hid(g()), left = R() < 0.5, x = left ? x0 - 190 + R() * 60 : x0 + 230 + R() * 120, y = 30 + R() * 170;
     out.push(D(1764, x, y, { ch: chSoul, z: "B3", zo: 2, s: 0.35 + R() * 0.3, groups: [gs, ALL] }));
     out.push(FX.T.alpha(xs(t), gs, 0.9, 0.1), FX.T.move(xs(t), gs, C.x + (R() - 0.5) * 40 - x, C.y + (R() - 0.5) * 50 - y, 0.85, 11), FX.T.alpha(xs(t + 0.6), gs, 0, 0.25));
   }
-  log.push(`STORY demon (${dm.objects.length} objects): eyes ${k16.toFixed(2)} s, rises to ${beatS(22).toFixed(2)} s, roars on 3 bars, claws ${beatS(24).toFixed(2)} s, surges in D, shut away at the slam; ${souls} souls sucked in`);
+  log.push(`souls: ${souls} sucked into the gate on the notes of C`);
 
+  GATE = GATEG;
   // C. the rune ring inside the arch: 8 runes, turning 1.5 times through the loud bars, lit one after another on every beat
   const RING = hid(g()), CEN = g(), RR = 62, runes = [];
   out.push(D(1764, C.x, C.y + 20, { ch: chRune, z: "B4", s: 0.1, groups: [CEN, ALL] }));   // the centre the ring turns about
@@ -283,51 +272,73 @@ function parts(ctx, songT, o = {}) {
   out.push(FX.T.colour(xs(c1), 1000, [48, 12, 22], 1.0));
   for (const gc of caps) out.push(FX.T.alpha(xs(c1), gc, 0.5, 1.0));
 
-  // E. the slam: two doors (strips that fill the arch's inner shape) slide in and meet at the last hit, over the player
-  const DL = hid(g()), DR = hid(g()), SEAM = hid(g()), RIN = RA - 10, OPEN = 150;
-  const DLm = g(), DRm = g(), CHN = [hid(g()), hid(g())], chChain = ch(COL.chain);
-  for (let sx = -1; sx <= 1; sx += 2) {
-    const gd = sx < 0 ? DL : DR, gm = sx < 0 ? DLm : DRm, gch = CHN[sx < 0 ? 0 : 1];
-    // the chain that drags this door shut: from the top of the screen to the door's top, links alternating
-    const cxx = C.x + sx * RIN * 0.55 + sx * OPEN, top = 270, bot = C.y + Math.sqrt(RIN * RIN - (RIN * 0.55) ** 2) - 4;
-    for (let y = bot, i = 0; y < top; y += 11, i++) out.push(D(211, cxx, y, { ch: chChain, z: "B1", zo: 1, sx: (i % 2 ? 2.5 : 6) / 30, sy: 10 / 30, groups: [gch, gm, ALL] }));
-    for (let i = 0; i < 12; i++) {
-      const dx = (i + 0.5) * (RIN / 12), h = C.y + Math.sqrt(Math.max(0, RIN * RIN - dx * dx));
-      const x = C.x + sx * dx;
-      out.push(D(211, x + sx * OPEN, h / 2, { ch: chDoor, z: "T1", zo: 2, sx: (RIN / 12 + 0.6) / 30, sy: h / 30, groups: [gd, gm, ALL] }));
-    }
-    // a lit edge down the door's middle
-    out.push(D(211, C.x + sx * RIN * 0.5 + sx * OPEN, (C.y + 40) / 2, { ch: chLit, z: "T1", zo: 3, sx: 2 / 30, sy: (C.y + 40) / 30, groups: [gd, gm, ALL] }));
+  // E. the portcullis: iron bars filling the arch's inner shape, hung up high from beat 24, dropping on the last hit --
+  // behind the player, who has just run through, and on the demons
+  const PC = hid(g()), PCm = g(), RIN = RA - 10, DROP = 170, chIron = ch(COL.chain), chTip = ch(COL.talon);
+  for (let dx = -RIN + 11; dx <= RIN - 11; dx += 14) {
+    const h = C.y + Math.sqrt(Math.max(0, RIN * RIN - dx * dx)) - 2;
+    out.push(D(211, C.x + dx, h / 2 + DROP, { ch: chIron, z: "B2", zo: 2, sx: 4 / 30, sy: h / 30, groups: [PC, PCm, ALL] }));
+    out.push(D(211, C.x + dx, 4 + DROP, { ch: chTip, z: "B2", zo: 2, s: 0.2, rot: 45, groups: [PC, PCm, ALL] }));   // the spike at its foot
   }
-  out.push(D(1293, C.x, (C.y + RIN) / 2, { ch: chSeam, z: "T1", zo: 4, sx: 0.5, sy: (C.y + RIN) / 30, groups: [SEAM, ALL] }));
-  const shut = 0.6;
-  out.push(FX.T.alpha(xs(SLAM - shut), DL, 1, 0.2), FX.T.alpha(xs(SLAM - shut), DR, 1, 0.2),
-    FX.T.move(xs(SLAM - shut), DLm, OPEN, 0, shut, 11), FX.T.move(xs(SLAM - shut), DRm, -OPEN, 0, shut, 11),
-    FX.T.alpha(xs(SLAM), SEAM, 1, 0), FX.T.alpha(xs(SLAM + 0.1), SEAM, 0, 1.6));
-  // the chains drop in at the start of D, jolt on its beats, and go taut
-  for (const gch of CHN) out.push(FX.T.alpha(xs(beatS(24)), gch, 1, 0.3));
-  for (const [i, gm] of [DLm, DRm].entries()) { const sx = i ? -1 : 1;
-    out.push(FX.T.move((ctx.path[0].x || 0) + 4, gm, 0, 60, 0), FX.T.move(xs(beatS(24)), gm, 0, -60, 0.3, FX.E.pop));        // the chains come down from above
-    for (const k of [28, 29, 30]) out.push(FX.T.move(xs(beatS(k)), gm, sx * 6, 0, 0.05, FX.E.hit), FX.T.move(xs(beatS(k) + 0.06), gm, -sx * 4, 0, 0.12, FX.E.settle));
-    out.push(FX.T.move(xs(SLAM - shut - 0.01), gm, -sx * 2 * 3, 0, 0.01, 0)); }
-  // sparks burst out of the seam, in front of everything
+  for (const y of [28, 70, 112, 150]) {
+    const half = y <= C.y ? RIN - 6 : Math.sqrt(Math.max(0, RIN * RIN - (y - C.y) ** 2)) - 6;
+    out.push(D(211, C.x, y + DROP, { ch: chIron, z: "B2", zo: 1, sx: 2 * half / 30, sy: 4 / 30, groups: [PC, PCm, ALL] }));
+  }
+  const fall = 0.3;
+  out.push(FX.T.alpha(xs(beatS(24)), PC, 1, 0.4), FX.T.move(xs(SLAM - fall), PCm, 0, -DROP, fall, 11));
+  // it jolts down a notch on each beat of D, as the chain gives
+  for (const k of [28, 29]) out.push(FX.T.move(xs(beatS(k)), PCm, 0, -8, 0.05, FX.E.hit), FX.T.move(xs(beatS(k) + 0.06), PCm, 0, 4, 0.15, FX.E.settle));
+  // sparks fly out where the spikes hit the ground, in front of everything
   const chSpark = ch(COL.spark, { blend: true });
   for (let i = 0; i < 18; i++) {
-    const gsp = hid(g()), y = 20 + R() * (C.y + RIN - 30), a = (i % 2 ? 0 : Math.PI) + (R() - 0.5) * 1.6, d = 70 + R() * 120;
-    out.push(D(1764, C.x, y, { ch: chSpark, z: "T2", zo: 1, s: 0.25 + R() * 0.25, groups: [gsp, ALL] }));
-    out.push(FX.T.alpha(xs(SLAM), gsp, 1, 0), FX.T.move(xs(SLAM), gsp, d * Math.cos(a), d * Math.sin(a) * 0.7 - 10, 0.5 + R() * 0.3, FX.E.hit), FX.T.alpha(xs(SLAM + 0.2), gsp, 0, 0.5));
+    const gsp = hid(g()), x = C.x + (R() - 0.5) * 2 * RIN, a = Math.PI * (0.1 + 0.8 * R()), d = 60 + R() * 110;
+    out.push(D(1764, x, 4, { ch: chSpark, z: "T2", zo: 1, s: 0.25 + R() * 0.25, groups: [gsp, ALL] }));
+    out.push(FX.T.alpha(xs(SLAM), gsp, 1, 0), FX.T.move(xs(SLAM), gsp, d * Math.cos(a), d * Math.sin(a), 0.5 + R() * 0.3, FX.E.hit), FX.T.alpha(xs(SLAM + 0.2), gsp, 0, 0.5));
   }
   // the arch sheds stones: they drop from the top of the arch, turning, and break on the ground
   for (let i = 0; i < 9; i++) {
-    const gr = hid(g()), x = C.x + (R() - 0.5) * 230, y = C.y + RA - 10 + R() * 30, tf = SLAM + 0.05 + R() * 0.35, fall = 0.45 + R() * 0.25;
+    const gr = hid(g()), x = C.x + (R() - 0.5) * 230, y = C.y + RA - 10 + R() * 30, tf = SLAM + 0.05 + R() * 0.35, fl = 0.45 + R() * 0.25;
     out.push(D(211, x, y, { ch: chStone, z: "T1", zo: 6, s: 0.22 + R() * 0.2, rot: R() * 90, groups: [gr, ALL] }));
-    out.push(FX.T.alpha(xs(tf), gr, 1, 0), FX.T.move(xs(tf), gr, (R() - 0.5) * 40, -y + 6, fall, 11), FX.T.rotate(xs(tf), gr, (R() < 0.5 ? -1 : 1) * (120 + R() * 200), fall),
-      FX.T.alpha(xs(tf + fall), gr, 0, 0.3));
+    out.push(FX.T.alpha(xs(tf), gr, 1, 0), FX.T.move(xs(tf), gr, (R() - 0.5) * 40, -y + 6, fl, 11), FX.T.rotate(xs(tf), gr, (R() < 0.5 ? -1 : 1) * (120 + R() * 200), fl),
+      FX.T.alpha(xs(tf + fl), gr, 0, 0.3));
   }
-  // F: its eyes glow once through the seam -- still in there -- then dark
-  const SEYE = hid(g()), chEyeR = ch(COL.eyeR, { blend: true });
-  for (const dx of [-14, 14]) out.push(D(1764, C.x + dx, C.y + 12, { ch: chEyeR, z: "T2", zo: 2, s: 0.35, groups: [SEYE, ALL] }));
-  out.push(FX.T.alpha(xs(229.0), SEYE, 0.9, 0.25), FX.T.alpha(xs(229.4), SEYE, 0, 0.9));
+  // the gate comes at us: from tApp it slides left at the ground's speed, so the player runs through it on beat 30
+  out.push(FX.T.move(xs(tApp), GATEG, -(AHEAD + BEHIND), 0, SLAM - tApp, 0));
+  log.push(`E the gate comes at us from ${tApp.toFixed(2)} s, the player passes its centre on beat 30 (${PASS.toFixed(2)} s), the portcullis drops at ${SLAM} s ${BEHIND.toFixed(0)} units behind him`);
+  GATE = null;
+
+  // THE CHASE (Evgeni's script): three demons run behind us from the first beat, dragons fly above, both throw fire;
+  // in D the demons fall back a little, at the slam the portcullis comes down on them and they crash into the bars
+  const kit = require("./hellgate_chase.js").kit({ g0: 4101, ch0: 850 });
+  kitHeader = kit.header;
+  const tEnd = songT(o.songTo || 232.5) - 0.2;
+  const cs = kit.chasers(ctx, { t0: songT(beatS(0)), t1: tEnd, runTo: songT(SLAM), beat: { t0: songT(NOTES.t0), period: NOTES.period }, z: ["B3", "B4", "B4"] });
+  out.push(...cs.objects);
+  for (const d of cs.demons) out.push(FX.T.alpha(xs(214.0), d.group, 0, 0), FX.T.move(xs(214.0), d.group, -160, 0, 0),
+    FX.T.alpha(xs(beatS(0) - 0.3), d.group, 1, 0.2), FX.T.move(xs(beatS(0) - 0.3), d.group, 160, 0, 1.6, FX.E.sineOut));   // they burst in from the left
+  cs.demons.forEach((d, i) => {
+    out.push(FX.T.move(xs(beatS(24)), d.group, -40, 0, beatS(28) - beatS(24), FX.E.sineOut));     // fall back as the music thins
+    // the bars come down on them: knocked back, then they claw at the bars on the beats after
+    out.push(FX.T.move(xs(SLAM), d.group, -22 - 6 * i, -6, 0.12, FX.E.hit), FX.T.move(xs(SLAM + 0.14), d.group, 14, 6, 0.35, FX.E.settle));
+    for (let k = 32; k < 36; k++) { const t = beatS(k) + i * 0.07; if (t > 230.4) break;
+      out.push(FX.T.move(xs(t), d.arm, 8, 4, 0.06, FX.E.hit), FX.T.move(xs(t + 0.08), d.arm, -8, -4, 0.22, FX.E.settle)); }
+  });
+  const dr = kit.dragons(ctx, { t0: songT(215.0), t1: songT(SLAM + 1.8), n: 2 });
+  out.push(...dr.objects);
+  for (const gd of dr.groups) out.push(FX.T.alpha(xs(214.0), gd, 0, 0), FX.T.move(xs(214.0), gd, -300, 80, 0),
+    FX.T.alpha(xs(beatS(2)), gd, 1, 0.3), FX.T.move(xs(beatS(2)), gd, 300, -80, 1.8, FX.E.sineOut));     // they swoop in from the top left
+  dr.groups.forEach((gd, i) => out.push(FX.T.move(xs(SLAM + 0.3 + i * 0.2), gd, 420, 160, 1.2, 11)));   // and climb away after the slam
+  // fire: the dragons breathe it down and the lead demon hurls it, on the strong notes -- each lands where the player is,
+  // and the pad build() put there hops him over it
+  let fires = 0, fi = 0;
+  for (const t of fireTimes()) {
+    fires++;
+    const lt = songT(t), who = fi++ % 3, fl = FLIGHT;
+    const from = who < 2 ? dr.mouth(who, lt - fl) : { x: ctx.xAt(lt - fl) - 125 + 30, y: 55 };
+    out.push(...kit.attack(ctx, { t: lt, flight: fl, from, at: { x: ctx.xAt(lt), y: 6 }, size: who < 2 ? 1 : 0.8 }));
+  }
+  log.push(`CHASE 3 demons running ${beatS(0).toFixed(2)}-${SLAM} s, 2 dragons ${(215).toFixed(1)}-${(SLAM + 1.8).toFixed(2)} s, ${fires} fireballs (${FLIGHT} s flights) the player hops over on pads; the bars come down on the demons at ${SLAM} s`);
+
   // ash falls through F
   const chAsh = ch(COL.ash, { opacity: 0.8 });
   for (let i = 0; i < 22; i++) {
@@ -338,7 +349,7 @@ function parts(ctx, songT, o = {}) {
   // the sky flashes once and the stage thuds down and settles
   out.push(FX.T.colour(xs(SLAM), 1000, COL.flash, 0), FX.T.colour(xs(SLAM + 0.02), 1000, [30, 6, 10], 0.7));
   for (const gc of caps) out.push(FX.T.alpha(xs(SLAM), gc, 1, 0), FX.T.alpha(xs(SLAM + 0.05), gc, 0.3, 1.2));
-  log.push(`E doors slam at ${SLAM} s (the last big hit)`);
+  log.push(`E the portcullis comes down at ${SLAM} s (the last big hit)`);
 
   // ENERGY: the stage thumps on every beat (bigger on the bar), the camera punches in on each bar and the strongest notes,
   // the sky flares on the bars of the loud part, the towers shudder on the strongest notes, and the slam shakes the screen
@@ -360,18 +371,18 @@ function parts(ctx, songT, o = {}) {
     const t = SLAM + i * 0.05; out.push(FX.T.move(xs(t) + 0.2, ALL, dx - (i ? [10, -8, 6, -4][i - 1] : 0), dy - (i ? [-8, 6, -4, 3][i - 1] : 0), 0.04, FX.E.hit));
   });
   out.push(FX.T.move(xs(SLAM + 0.26), ALL, -2, 2, 0.1, FX.E.settle));
-  out.push(FX.T.zoom(xs(SLAM) + 0.4, 1.2, 0.05), FX.T.zoom(xs(SLAM + 0.08), 1, 1.0));
+  out.push(FX.T.zoom(xs(SLAM) + 0.4, 1.2, 0.05), FX.T.zoom(xs(SLAM + 0.08), 0.85, 1.4));   // then out: the closed gate behind us
   log.push(`ENERGY: stage thump on 31 beats, zoom punches on bars + ${shudders} strongest notes (towers shudder), sky flares on the loud bars, slam shake + zoom`);
 
   // F. the closed gate dims into the dark
   const f0 = 229.5;
-  for (const gr of fades.concat([DL, DR], CHN)) out.push(FX.T.alpha(xs(f0), gr, 0.3, 1.5));
+  for (const gr of fades.concat([PC], cs.demons.map(d => d.group))) out.push(FX.T.alpha(xs(f0), gr, 0.3, 1.5));
   for (const gr of [BACK, LAVA, SMOKE, MOON, VOID].concat(WIN)) out.push(FX.T.alpha(xs(SLAM + 0.3), gr, 0, f0 + 1.2 - SLAM));
   out.push(FX.T.alpha(xs(f0), RING, 0, 1.2));
   for (const gr of runes.concat(caps)) out.push(FX.T.alpha(xs(f0), gr, 0, 1.2));
   out.push(FX.T.colour(xs(f0), 1000, COL.black, 1.8), FX.T.colour(xs(f0) + 1, 1001, COL.black, 1.8));
   out.push(FX.T.colour(xs(f0) + 2, 1013, COL.black, 1.8), FX.T.colour(xs(f0) + 3, 1014, COL.black, 1.8));
-  for (const gr of fades.concat([DL, DR], CHN)) out.push(FX.T.alpha(xs(231.0), gr, 0, 1.0));
+  for (const gr of fades.concat([PC], cs.demons.map(d => d.group))) out.push(FX.T.alpha(xs(231.0), gr, 0, 1.0));
   log.push(`F gate dims from ${f0} s, dark by 232 s`);
   return { objects: out, log };
 }
@@ -384,6 +395,9 @@ function build(o = {}) {
     1013: { rgb: [44, 16, 44] }, 1014: { rgb: [30, 10, 30] } });   // the middleground hills: hellgate dark, not GD's default lavender
   const endX = (songTo - from) * 311.58;          // flat ground at 1x; the level ends after the song is silent
   const end = [{ id: 1764, x: endX, y: 1500, rot: 0, props: {} }];
+  // the dodges: a pink pad under each shot's landing (x from the flat run, 1x: the path before any pad is the same)
+  const flat = runOf(header, end).path, xFlat = t => flat[Math.min(flat.length - 1, Math.round(t * TPS))].x;
+  for (const t of fireTimes()) end.push({ id: PAD, x: +(xFlat(songT(t)) - PAD_LEAD).toFixed(2), y: 2, rot: 0, props: {} });
   const base = runOf(header, end);
   if (base.dead) throw new Error("the empty run dies: " + base.why);
   const ctx = FX.context({ path: base.path, grid: { t0: NOTES.t0 - from, period: NOTES.period } });
@@ -391,8 +405,8 @@ function build(o = {}) {
   // the quiet sign over the last 5 s of the song (it is silent from ~231 s: the sign fades in at 226.5 s)
   const sg = require("./signature.js"), p = base.path;
   const xAt = t => ctx.xAt(t), tOfX = x => { let i = p.findIndex(s => s.x >= x); if (i < 0) i = p.length - 1; return i / TPS; };
-  const sign = sg.overlay({ endX: ctx.xAt(songT(231.5)), xOfT: xAt, tOfX, secs: 5, cam: 0, dx: 290 });   // right of the right tower (x0 + 203)
-  header = K.channels(sg.header(ctx.header(header), {}), demonChannels);
+  const sign = sg.overlay({ endX: ctx.xAt(songT(232.3)), xOfT: xAt, tOfX, secs: 3.5, cam: 0, dx: 290 });   // v4: after the slam (228.8 s), not over the chase
+  header = kitHeader(sg.header(ctx.header(header), {}));
   const objs = end.concat(show.objects, ctx.prelude(), sign);
   const withFx = runOf(header, objs);
   const same = withFx.path.length === base.path.length && withFx.path.every((s, i) => Math.abs(s.x - p[i].x) < 1e-6 && Math.abs(s.y - p[i].y) < 1e-6);
@@ -402,19 +416,19 @@ function build(o = {}) {
   return { header, objects: objs, measures, log: show.log };
 }
 
-module.exports = { build, parts, beatS, SLAM };
+module.exports = { build, parts, beatS, SLAM, fireTimes, FLIGHT };
 
 if (require.main === module) {
   const a = process.argv.slice(2), opt = k => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : null; };
   const r = build({ from: opt("--from") != null ? +opt("--from") : undefined });
   const out = path.resolve(opt("--out") || path.join(ROOT, "levels", "gdlm_44_hellgate_ending.gdlvl"));
   const sg = require("./signature.js");
-  const rec = GD.newRecord("GDLM 44 hellgate ending", sg.describe("Hellgate's ending: the gate closes (no gameplay, song 213.8-232 s; tools/hellgate_ending.js, HELLGATE.md)"));
+  const rec = GD.newRecord("GDLM 44 hellgate ending", sg.describe("Hellgate's ending: chased to the gate, it closes on them (no gameplay, song 213.8-232 s; tools/hellgate_ending.js, HELLGATE.md)"));
   GD.setField(rec, "k45", "i", SONG);
   fs.mkdirSync(path.dirname(out), { recursive: true });
   writeGdlvl(out, rec, { header: r.header, objects: r.objects });
   if (r.measures.clears) require("./planned.js").writeAuto(out, "tools/hellgate_ending.js: no gameplay, clears with no press");
   if (!a.includes("--quiet")) console.log(r.log.join("\n"));
   console.log(JSON.stringify(r.measures));
-  console.log(`${r.measures.clears && !r.measures.showChangesRun ? "CLEARS, the show leaves the run unchanged" : "PROBLEM"} -> ${path.relative(ROOT, out)}`);
+  console.log(`${r.measures.clears && !r.measures.showChangesRun ? "CLEARS with no press (pads hop the player over the fire), the show leaves the run unchanged" : "PROBLEM"} -> ${path.relative(ROOT, out)}`);
 }
